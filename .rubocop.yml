@@ -1,0 +1,54 @@
+# frozen_string_literal: true
+
+# RuboCop configuration for Robot Challenge
+
+AllCops:
+  TargetRubyVersion: 3.0
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - 'coverage/**/*'
+
+# Layout cops
+Layout/LineLength:
+  Max: 120
+  AllowedPatterns: ['(\A|\s)#']
+
+# Style cops
+Style/Documentation:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+
+# Metrics cops
+Metrics/MethodLength:
+  Max: 15
+  CountAsOne: ['array', 'heredoc']
+
+Metrics/ClassLength:
+  Max: 150
+
+Metrics/BlockLength:
+  Max: 25
+  CountAsOne: ['array', 'heredoc']
+  Exclude:
+    - 'spec/**/*'
+    - 'Rakefile'
+
+# RSpec specific cops
+require: rubocop-rspec
+
+RSpec/ExampleLength:
+  Max: 10
+
+RSpec/MultipleExpectations:
+  Max: 3
+
+RSpec/NestedGroups:
+  Max: 3

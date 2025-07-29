@@ -1,0 +1,37 @@
+# Dependency directories
+vendor/
+.bundle/
+
+# Test coverage
+coverage/
+
+# Temporary files
+tmp/
+*.tmp
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Ruby version managers
+.ruby-version
+.rvmrc
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+
+# Docker
+.dockerignore
+
+# Gemfile.lock (uncomment if you want to ignore it)
+# Gemfile.lock
