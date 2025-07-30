@@ -68,8 +68,7 @@ module RobotChallenge
       output_handler.call(report)
     end
 
-    def handle_error(error)
-    end
+    def handle_error(error); end
 
     def default_output_handler(message)
       puts message

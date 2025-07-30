@@ -1,5 +1,5 @@
-# Use Ruby 3.2 slim image for smaller size
-FROM ruby:3.2-slim
+# Use Ruby 3.3.0 slim image for smaller size
+FROM ruby:3.3.0-slim
 
 # Set working directory
 WORKDIR /app

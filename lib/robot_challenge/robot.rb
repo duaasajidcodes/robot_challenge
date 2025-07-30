@@ -11,9 +11,9 @@ module RobotChallenge
     end
 
     def place(position, direction)
-      raise InvalidPositionError, "Position must be a Position object" unless position.is_a?(Position)
-      raise InvalidDirectionError, "Direction must be a Direction object" unless direction.is_a?(Direction)
-      
+      raise InvalidPositionError, 'Position must be a Position object' unless position.is_a?(Position)
+      raise InvalidDirectionError, 'Direction must be a Direction object' unless direction.is_a?(Direction)
+
       unless table.valid_position?(position)
         raise InvalidPositionError, "Position #{position} is outside table boundaries"
       end

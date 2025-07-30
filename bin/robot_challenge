@@ -19,14 +19,14 @@ ARGV.each_with_index do |arg, index|
   when '--help'
     puts <<~HELP
       Robot Challenge Simulator
-      
+
       Usage: #{$PROGRAM_NAME} [options]
-      
+
       Options:
         --width, -w WIDTH    Set table width (default: 5)
         --height, -h HEIGHT  Set table height (default: 5)
         --help               Show this help message
-      
+
       Examples:
         #{$PROGRAM_NAME}                    # Run with default 5x5 table
         #{$PROGRAM_NAME} -w 10 -h 8        # Run with 10x8 table
@@ -38,7 +38,7 @@ end
 
 # Validate table dimensions
 if table_width < 1 || table_height < 1
-  $stderr.puts 'Error: Table dimensions must be positive integers'
+  warn 'Error: Table dimensions must be positive integers'
   exit(1)
 end
 
@@ -49,7 +49,7 @@ begin
     table_height: table_height
   )
   app.run
-rescue => e
-  $stderr.puts "Error: #{e.message}"
+rescue StandardError => e
+  warn "Error: #{e.message}"
   exit(1)
 end

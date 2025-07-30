@@ -50,9 +50,9 @@ module RobotChallenge
 
       input_source.each_line do |line|
         command_string = line.chomp
-        
+
         break if exit_command?(command_string)
-        
+
         should_exit = process_command(command_string)
         break if should_exit
 
@@ -83,18 +83,18 @@ module RobotChallenge
       output_destination.puts <<~WELCOME
         Robot Challenge Simulator
         ========================
-        
+
         Commands:
           PLACE X,Y,F  - Place robot at position (X,Y) facing direction F
           MOVE         - Move robot one step forward
           LEFT         - Turn robot 90° counter-clockwise
-          RIGHT        - Turn robot 90° clockwise  
+          RIGHT        - Turn robot 90° clockwise#{'  '}
           REPORT       - Show current position and direction
           EXIT/QUIT    - Exit the application
-        
+
         Table size: #{@table}
         Valid directions: #{Direction.valid_directions.join(', ')}
-        
+
       WELCOME
     end
 

@@ -17,8 +17,6 @@ module RobotChallenge
         parse_place_command(parts[1])
       when 'MOVE', 'LEFT', 'RIGHT', 'REPORT', 'EXIT', 'QUIT'
         { command: command_name.downcase.to_sym }
-      else
-        nil
       end
     end
 
