@@ -234,11 +234,17 @@ RSpec.describe 'Robot Challenge Integration' do
       robot = RobotChallenge::Robot.new(table)
       processor = RobotChallenge::CommandProcessor.new(robot, output_handler)
 
-      commands = File.readlines("/Users/duaasajid/Desktop/robot_challenge/test_data/#{filename}")
-                     .map(&:chomp)
-                     .reject(&:empty?)
+      # Stream processing - no memory accumulation
+      File.open("/Users/duaasajid/Desktop/robot_challenge/test_data/#{filename}", 'r') do |file|
+        file.each_line do |line|
+          command_string = line.chomp
+          next if command_string.empty?
 
-      processor.process_commands(commands)
+          command = RobotChallenge::CommandParser.parse(command_string)
+          should_exit = processor.process_command(command)
+          break if should_exit
+        end
+      end
     end
 
     it 'processes example_1.txt correctly' do

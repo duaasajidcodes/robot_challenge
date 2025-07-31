@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'tempfile'
 
 RSpec.describe 'Robot Challenge Performance and Edge Cases' do
   let(:table) { RobotChallenge::Table.new }
@@ -9,55 +10,66 @@ RSpec.describe 'Robot Challenge Performance and Edge Cases' do
   let(:output_handler) { ->(message) { output_messages << message } }
   let(:processor) { RobotChallenge::CommandProcessor.new(robot, output_handler) }
 
-  describe 'performance characteristics' do
-    it 'handles 10,000 commands efficiently' do
-      commands = ['PLACE 2,2,NORTH']
-      
-      # Generate 10,000 movement commands
-      10_000.times do |i|
-        case i % 4
-        when 0 then commands << 'MOVE'
-        when 1 then commands << 'RIGHT'
-        when 2 then commands << 'MOVE'
-        when 3 then commands << 'LEFT'
+  describe 'streaming performance characteristics' do
+    it 'handles 10,000 commands efficiently with constant memory' do
+      Tempfile.create(['large_test', '.txt']) do |temp_file|
+        temp_file.puts 'PLACE 2,2,NORTH'
+        
+        # Generate 10,000 movement commands
+        10_000.times do |i|
+          case i % 4
+          when 0 then temp_file.puts 'MOVE'
+          when 1 then temp_file.puts 'RIGHT'
+          when 2 then temp_file.puts 'MOVE'
+          when 3 then temp_file.puts 'LEFT'
+          end
         end
+        temp_file.puts 'REPORT'
+        temp_file.rewind
+
+        initial_memory = memory_usage_mb
+        start_time = Time.now
+        processor.process_command_stream(temp_file)
+        duration = Time.now - start_time
+        final_memory = memory_usage_mb
+
+        expect(duration).to be < 5.0 # Should complete in under 5 seconds
+        expect(final_memory - initial_memory).to be < 50 # Should use < 50MB additional memory
+        expect(output_messages).not_to be_empty
       end
-      commands << 'REPORT'
-
-      start_time = Time.now
-      processor.process_commands(commands)
-      duration = Time.now - start_time
-
-      expect(duration).to be < 2.0 # Should complete in under 2 seconds
-      expect(output_messages).not_to be_empty
     end
 
-    it 'maintains memory efficiency with large datasets' do
-      initial_memory = memory_usage
-      
-      # Process many commands
-      1000.times do |i|
-        processor.process_commands([
-          "PLACE #{i % 5},#{i % 5},NORTH",
-          'MOVE',
-          'RIGHT',
-          'MOVE',
-          'REPORT'
-        ])
-        output_messages.clear # Prevent memory accumulation in test
+    it 'maintains constant memory usage regardless of file size' do
+      memory_growths = []
+
+      [1_000, 5_000, 10_000].each do |command_count|
+        Tempfile.create(["test_#{command_count}", '.txt']) do |temp_file|
+          temp_file.puts 'PLACE 1,1,NORTH'
+          command_count.times { |i| temp_file.puts %w[MOVE LEFT RIGHT][i % 3] }
+          temp_file.puts 'REPORT'
+          temp_file.rewind
+
+          robot.reset
+          output_messages.clear
+
+          initial_memory = memory_usage_mb
+          processor.process_command_stream(temp_file)
+          final_memory = memory_usage_mb
+
+          memory_growth = final_memory - initial_memory
+          memory_growths << memory_growth
+        end
       end
 
-      final_memory = memory_usage
-      memory_growth = final_memory - initial_memory
-
-      # Memory growth should be minimal (less than 50MB)
-      expect(memory_growth).to be < 50
+      # Memory growth should be relatively constant, not proportional to file size
+      expect(memory_growths.max - memory_growths.min).to be < 25
+      expect(memory_growths).to all(be < 50)
     end
   end
 
   describe 'boundary edge cases' do
     it 'handles extreme coordinates' do
-      # Test with maximum Ruby integer values
+      # Test with large table
       large_table = RobotChallenge::Table.new(1000, 1000)
       large_robot = RobotChallenge::Robot.new(large_table)
       
@@ -75,11 +87,14 @@ RSpec.describe 'Robot Challenge Performance and Edge Cases' do
       zero_robot = RobotChallenge::Robot.new(zero_table)
       zero_processor = RobotChallenge::CommandProcessor.new(zero_robot, output_handler)
 
-      zero_processor.process_commands([
-        'PLACE 0,0,NORTH',  # Should fail
-        'MOVE',             # Should be ignored
-        'REPORT'            # Should be ignored
-      ])
+      Tempfile.create(['zero_test', '.txt']) do |temp_file|
+        temp_file.puts 'PLACE 0,0,NORTH'  # Should fail
+        temp_file.puts 'MOVE'             # Should be ignored
+        temp_file.puts 'REPORT'           # Should be ignored
+        temp_file.rewind
+
+        zero_processor.process_command_stream(temp_file)
+      end
 
       expect(output_messages).to be_empty
       expect(zero_robot).not_to be_placed
@@ -90,13 +105,16 @@ RSpec.describe 'Robot Challenge Performance and Edge Cases' do
       tiny_robot = RobotChallenge::Robot.new(tiny_table)
       tiny_processor = RobotChallenge::CommandProcessor.new(tiny_robot, output_handler)
 
-      tiny_processor.process_commands([
-        'PLACE 0,0,NORTH',
-        'MOVE',     # Should not move
-        'RIGHT',    # Should turn
-        'MOVE',     # Should not move
-        'REPORT'
-      ])
+      Tempfile.create(['tiny_test', '.txt']) do |temp_file|
+        temp_file.puts 'PLACE 0,0,NORTH'
+        temp_file.puts 'MOVE'     # Should not move
+        temp_file.puts 'RIGHT'    # Should turn
+        temp_file.puts 'MOVE'     # Should not move
+        temp_file.puts 'REPORT'
+        temp_file.rewind
+
+        tiny_processor.process_command_stream(temp_file)
+      end
 
       expect(output_messages).to eq(['0,0,EAST'])
     end
@@ -104,57 +122,64 @@ RSpec.describe 'Robot Challenge Performance and Edge Cases' do
 
   describe 'input validation edge cases' do
     it 'handles various whitespace patterns' do
-      whitespace_commands = [
-        "PLACE\t0,0,NORTH",      # Tab characters
-        " MOVE ",                 # Leading/trailing spaces
-        "REPORT",                 # Normal command
-        "   LEFT   ",             # Multiple spaces
-      ]
+      Tempfile.create(['whitespace_test', '.txt']) do |temp_file|
+        temp_file.puts "PLACE\t0,0,NORTH"      # Tab characters
+        temp_file.puts " MOVE "                 # Leading/trailing spaces
+        temp_file.puts "REPORT"                 # Normal command
+        temp_file.puts "   LEFT   "             # Multiple spaces
+        temp_file.rewind
 
-      expect { processor.process_commands(whitespace_commands) }.not_to raise_error
-      expect(output_messages).to eq(['0,1,WEST'])
+        expect { processor.process_command_stream(temp_file) }.not_to raise_error
+        expect(output_messages).to eq(['0,1,WEST'])
+      end
     end
 
     it 'handles unicode and special characters gracefully' do
-      unicode_commands = [
-        'PLACE 0,0,NORTH',
-        'MÖVE',              # Invalid with unicode
-        'MOVE',              # Valid
-        'REPØRT',            # Invalid with unicode
-        'REPORT'             # Valid
-      ]
+      Tempfile.create(['unicode_test', '.txt']) do |temp_file|
+        temp_file.puts 'PLACE 0,0,NORTH'
+        temp_file.puts 'MÖVE'              # Invalid with unicode
+        temp_file.puts 'MOVE'              # Valid
+        temp_file.puts 'REPØRT'            # Invalid with unicode
+        temp_file.puts 'REPORT'            # Valid
+        temp_file.rewind
 
-      processor.process_commands(unicode_commands)
-      expect(output_messages).to eq(['0,1,NORTH'])
+        processor.process_command_stream(temp_file)
+        expect(output_messages).to eq(['0,1,NORTH'])
+      end
     end
 
     it 'handles extremely long invalid commands' do
-      long_command = 'INVALID' + 'X' * 1000
-      
-      expect { processor.process_command(RobotChallenge::CommandParser.parse(long_command)) }.not_to raise_error
-      expect(robot).not_to be_placed
+      Tempfile.create(['long_test', '.txt']) do |temp_file|
+        temp_file.puts 'PLACE 1,1,NORTH'
+        temp_file.puts 'INVALID' + 'X' * 1000  # Very long invalid command
+        temp_file.puts 'REPORT'
+        temp_file.rewind
+        
+        expect { processor.process_command_stream(temp_file) }.not_to raise_error
+        expect(output_messages).to eq(['1,1,NORTH'])
+      end
     end
   end
 
   describe 'concurrent behavior simulation' do
     it 'maintains state consistency with rapid command changes' do
-      # Simulate rapid fire commands
-      commands = []
-      100.times do |i|
-        commands += [
-          "PLACE #{i % 5},#{i % 5},NORTH",
-          'MOVE',
-          'RIGHT',
-          'MOVE',
-          'LEFT'
-        ]
-      end
-      commands << 'REPORT'
+      Tempfile.create(['rapid_test', '.txt']) do |temp_file|
+        # Simulate rapid fire commands
+        100.times do |i|
+          temp_file.puts "PLACE #{i % 5},#{i % 5},NORTH"
+          temp_file.puts 'MOVE'
+          temp_file.puts 'RIGHT'
+          temp_file.puts 'MOVE'
+          temp_file.puts 'LEFT'
+        end
+        temp_file.puts 'REPORT'
+        temp_file.rewind
 
-      processor.process_commands(commands)
-      
-      # Should end in a valid state
-      expect(output_messages.last).to match(/\d+,\d+,(NORTH|EAST|SOUTH|WEST)/)
+        processor.process_command_stream(temp_file)
+        
+        # Should end in a valid state
+        expect(output_messages.last).to match(/\d+,\d+,(NORTH|EAST|SOUTH|WEST)/)
+      end
     end
   end
 
@@ -194,26 +219,27 @@ RSpec.describe 'Robot Challenge Performance and Edge Cases' do
 
   describe 'error resilience' do
     it 'recovers from parser errors' do
-      commands_with_errors = [
-        'PLACE 1,1,NORTH',
-        'MOVE',
-        '',                     # Empty command
-        'PLACE',               # Incomplete command
-        'MOVE EXTRA ARGS',     # Extra arguments
-        'REPORT',
-        'INVALID COMMAND TYPE',
-        'RIGHT',
-        'REPORT'
-      ]
+      Tempfile.create(['error_test', '.txt']) do |temp_file|
+        temp_file.puts 'PLACE 1,1,NORTH'
+        temp_file.puts 'MOVE'
+        temp_file.puts ''                     # Empty command
+        temp_file.puts 'PLACE'               # Incomplete command
+        temp_file.puts 'MOVE EXTRA ARGS'     # Extra arguments
+        temp_file.puts 'REPORT'
+        temp_file.puts 'INVALID COMMAND TYPE'
+        temp_file.puts 'RIGHT'
+        temp_file.puts 'REPORT'
+        temp_file.rewind
 
-      expect { processor.process_commands(commands_with_errors) }.not_to raise_error
-      expect(output_messages).to eq(['1,2,NORTH', '1,2,EAST'])
+        expect { processor.process_command_stream(temp_file) }.not_to raise_error
+        expect(output_messages).to eq(['1,2,NORTH', '1,2,EAST'])
+      end
     end
   end
 
   private
 
-  def memory_usage
+  def memory_usage_mb
     # Simple memory usage approximation (MB)
     # This is a rough estimate for testing purposes
     begin

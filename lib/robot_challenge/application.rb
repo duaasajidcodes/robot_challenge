@@ -37,9 +37,13 @@ module RobotChallenge
       processor.process_command(command)
     end
 
-    # Process multiple command strings
     def process_commands(command_strings)
+      warn 'Warning: process_commands loads all commands into memory. Use streaming approach for large datasets.'
       processor.process_commands(command_strings)
+    end
+
+    def process_command_stream(input_stream)
+      processor.process_command_stream(input_stream)
     end
 
     private

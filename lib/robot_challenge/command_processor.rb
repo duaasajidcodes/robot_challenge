@@ -36,7 +36,19 @@ module RobotChallenge
     end
 
     def process_commands(command_strings)
+      warn 'Warning: process_commands loads all commands into memory. Use streaming approach for large datasets.'
       command_strings.each do |command_string|
+        command = CommandParser.parse(command_string)
+        should_exit = process_command(command)
+        return if should_exit
+      end
+    end
+
+    def process_command_stream(input_stream)
+      input_stream.each_line do |line|
+        command_string = line.chomp
+        next if command_string.empty?
+
         command = CommandParser.parse(command_string)
         should_exit = process_command(command)
         return if should_exit
