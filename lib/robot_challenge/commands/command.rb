@@ -23,6 +23,12 @@ module RobotChallenge
         self.class.name.split('::').last.downcase.to_sym
       end
 
+      # Default string representation
+      # @return [String] command name in uppercase
+      def to_s
+        self.class.name.split('::').last.gsub('Command', '').upcase
+      end
+
       protected
 
       # Standard success result
@@ -38,6 +44,13 @@ module RobotChallenge
       # Result that should be displayed to user
       def output_result(message)
         { status: :output, message: message }
+      end
+
+      # Helper method to handle robot placement errors
+      def handle_robot_placement_error
+        yield
+      rescue RobotNotPlacedError => e
+        error_result(e.message, :robot_not_placed)
       end
     end
   end

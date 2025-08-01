@@ -19,13 +19,12 @@ module RobotChallenge
       @input_source = InputSourceFactory.create(input_source)
       @output_destination = output_destination
       @output_formatter = output_formatter || OutputFormatterFactory.from_environment
-      @processor = CommandProcessor.new(@robot, output_handler: method(:output_handler),
-                                                output_formatter: @output_formatter)
+      @processor = create_processor(method(:output_handler))
     end
 
     # Set a custom output handler for testing
     def set_output_handler(handler)
-      @processor = CommandProcessor.new(@robot, output_handler: handler, output_formatter: @output_formatter)
+      @processor = create_processor(handler)
     end
 
     def set_input_source(source)
@@ -36,8 +35,7 @@ module RobotChallenge
     def set_output_formatter(formatter)
       @output_formatter = formatter
       # Recreate processor with new output formatter
-      @processor = CommandProcessor.new(@robot, output_handler: method(:output_handler),
-                                                output_formatter: @output_formatter)
+      @processor = create_processor(method(:output_handler))
     end
 
     # Run the application
@@ -79,6 +77,10 @@ module RobotChallenge
     end
 
     private
+
+    def create_processor(output_handler)
+      CommandProcessor.new(@robot, output_handler: output_handler, output_formatter: @output_formatter)
+    end
 
     def run_interactive_mode
       output_destination.puts 'Interactive mode - enter commands (Ctrl-C to exit):'

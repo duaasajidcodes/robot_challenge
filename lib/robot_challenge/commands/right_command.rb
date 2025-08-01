@@ -7,15 +7,13 @@ module RobotChallenge
     # Command to turn the robot right
     class RightCommand < Command
       def execute(robot)
-        robot.turn_right
-        success_result
-      rescue RobotNotPlacedError => e
-        error_result(e.message, :robot_not_placed)
+        handle_robot_placement_error do
+          robot.turn_right
+          success_result
+        end
       end
 
-      def to_s
-        'RIGHT'
-      end
+
     end
   end
 end

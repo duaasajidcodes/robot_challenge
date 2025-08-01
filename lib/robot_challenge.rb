@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'robot_challenge/version'
+require_relative 'robot_challenge/constants'
 require_relative 'robot_challenge/config'
 require_relative 'robot_challenge/input_source'
 require_relative 'robot_challenge/output_formatter'

@@ -1,8 +1,35 @@
 # frozen_string_literal: true
 
 module RobotChallenge
+  # Helper module for common output formatter functionality
+  module OutputFormatterHelpers
+    def robot_data(robot)
+      {
+        position: {
+          x: robot.position.x,
+          y: robot.position.y
+        },
+        direction: robot.direction.name,
+        formatted: robot.report
+      }
+    end
+
+    def command_descriptions
+      Constants::COMMAND_DESCRIPTIONS
+    end
+
+    def table_data(table)
+      {
+        width: table.width,
+        height: table.height
+      }
+    end
+  end
+
   # Abstract base class for output formatters
   class OutputFormatter
+    include OutputFormatterHelpers
+
     def format_report(robot)
       raise NotImplementedError, "#{self.class} must implement #format_report"
     end
@@ -41,16 +68,18 @@ module RobotChallenge
     end
 
     def format_welcome_message(table, valid_directions)
+      commands = command_descriptions
+      
       <<~WELCOME
-        Robot Challenge Simulator
+        #{Constants::APPLICATION_NAME}
         ========================
 
         Commands:
-          PLACE X,Y,F  - Place robot at position (X,Y) facing direction F
-          MOVE         - Move robot one step forward
-          LEFT         - Turn robot 90° counter-clockwise
-          RIGHT        - Turn robot 90° clockwise
-          REPORT       - Show current position and direction
+          #{commands[:place]}
+          #{commands[:move]}
+          #{commands[:left]}
+          #{commands[:right]}
+          #{commands[:report]}
 
         Table size: #{table}
         Valid directions: #{valid_directions.join(', ')}
@@ -59,30 +88,25 @@ module RobotChallenge
     end
 
     def format_goodbye_message
-      "\nThank you for using Robot Challenge Simulator!"
+      "\n#{Constants::SUCCESS_MESSAGES[:goodbye]}"
     end
   end
 
   # JSON formatter for structured output
   class JsonOutputFormatter < OutputFormatter
-    def format_report(robot)
+    def initialize
       require 'json'
+    end
+
+    def format_report(robot)
       {
         status: 'success',
         type: 'report',
-        data: {
-          position: {
-            x: robot.position.x,
-            y: robot.position.y
-          },
-          direction: robot.direction.name,
-          formatted: robot.report
-        }
+        data: robot_data(robot)
       }.to_json
     end
 
     def format_error(message, error_type = :general_error)
-      require 'json'
       {
         status: 'error',
         type: error_type.to_s,
@@ -91,7 +115,6 @@ module RobotChallenge
     end
 
     def format_success(message = nil)
-      require 'json'
       {
         status: 'success',
         message: message
@@ -99,30 +122,19 @@ module RobotChallenge
     end
 
     def format_welcome_message(table, valid_directions)
-      require 'json'
       {
         status: 'info',
         type: 'welcome',
         data: {
           application: 'Robot Challenge Simulator',
-          table: {
-            width: table.width,
-            height: table.height
-          },
+          table: table_data(table),
           valid_directions: valid_directions,
-          commands: {
-            place: 'PLACE X,Y,F - Place robot at position (X,Y) facing direction F',
-            move: 'MOVE - Move robot one step forward',
-            left: 'LEFT - Turn robot 90° counter-clockwise',
-            right: 'RIGHT - Turn robot 90° clockwise',
-            report: 'REPORT - Show current position and direction'
-          }
+          commands: command_descriptions
         }
       }.to_json
     end
 
     def format_goodbye_message
-      require 'json'
       {
         status: 'info',
         type: 'goodbye',
@@ -170,21 +182,24 @@ module RobotChallenge
     end
 
     def format_welcome_message(table, valid_directions)
+      table_info = table_data(table)
+      commands = command_descriptions
+      
       <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <robot_welcome>
           <application>Robot Challenge Simulator</application>
           <table>
-            <width>#{table.width}</width>
-            <height>#{table.height}</height>
+            <width>#{table_info[:width]}</width>
+            <height>#{table_info[:height]}</height>
           </table>
           <valid_directions>#{valid_directions.join(', ')}</valid_directions>
           <commands>
-            <place>PLACE X,Y,F - Place robot at position (X,Y) facing direction F</place>
-            <move>MOVE - Move robot one step forward</move>
-            <left>LEFT - Turn robot 90° counter-clockwise</left>
-            <right>RIGHT - Turn robot 90° clockwise</right>
-            <report>REPORT - Show current position and direction</report>
+            <place>#{commands[:place]}</place>
+            <move>#{commands[:move]}</move>
+            <left>#{commands[:left]}</left>
+            <right>#{commands[:right]}</right>
+            <report>#{commands[:report]}</report>
           </commands>
         </robot_welcome>
       XML
@@ -215,17 +230,20 @@ module RobotChallenge
     end
 
     def format_welcome_message(table, valid_directions)
+      table_info = table_data(table)
+      commands = command_descriptions
+      
       <<~CSV
         type,key,value
         application,name,Robot Challenge Simulator
-        table,width,#{table.width}
-        table,height,#{table.height}
+        table,width,#{table_info[:width]}
+        table,height,#{table_info[:height]}
         directions,valid,#{valid_directions.join(';')}
-        command,place,PLACE X,Y,F - Place robot at position (X,Y) facing direction F
-        command,move,MOVE - Move robot one step forward
-        command,left,LEFT - Turn robot 90° counter-clockwise
-        command,right,RIGHT - Turn robot 90° clockwise
-        command,report,REPORT - Show current position and direction
+        command,place,#{commands[:place]}
+        command,move,#{commands[:move]}
+        command,left,#{commands[:left]}
+        command,right,#{commands[:right]}
+        command,report,#{commands[:report]}
       CSV
     end
 

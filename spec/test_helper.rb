@@ -5,6 +5,7 @@
 
 # Load the test environment configuration
 require_relative '../lib/robot_challenge'
+require_relative 'test_helpers'
 
 # Set test environment
 ENV['ROBOT_ENV'] = 'test'
@@ -27,8 +28,8 @@ RSpec.configure do |config|
   end
 end
 
-# Helper methods for testing
-module TestHelpers
+# Legacy helper methods for backward compatibility
+module LegacyTestHelpers
   def create_test_application(config_overrides = {})
     test_config = RobotChallenge::Config.for_environment('test')
 
@@ -51,7 +52,7 @@ module TestHelpers
   end
 end
 
-# Include test helpers in RSpec
+# Include legacy test helpers in RSpec for backward compatibility
 RSpec.configure do |config|
-  config.include TestHelpers
+  config.include LegacyTestHelpers
 end

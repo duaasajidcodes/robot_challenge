@@ -7,15 +7,13 @@ module RobotChallenge
     # Command to move the robot forward
     class MoveCommand < Command
       def execute(robot)
-        robot.move
-        success_result
-      rescue RobotNotPlacedError => e
-        error_result(e.message, :robot_not_placed)
+        handle_robot_placement_error do
+          robot.move
+          success_result
+        end
       end
 
-      def to_s
-        'MOVE'
-      end
+
     end
   end
 end

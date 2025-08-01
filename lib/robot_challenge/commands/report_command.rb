@@ -7,15 +7,13 @@ module RobotChallenge
     # Command to report robot's current position and direction
     class ReportCommand < Command
       def execute(robot)
-        report = robot.report
-        output_result(report)
-      rescue RobotNotPlacedError => e
-        error_result(e.message, :robot_not_placed)
+        handle_robot_placement_error do
+          report = robot.report
+          output_result(report)
+        end
       end
 
-      def to_s
-        'REPORT'
-      end
+
     end
   end
 end

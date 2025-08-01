@@ -27,7 +27,7 @@ module RobotChallenge
     # Process a command object
     def process_command(command)
       @dispatcher.dispatch(command) do |formatted_message|
-        @output_handler.call(formatted_message) if formatted_message
+        handle_output(formatted_message)
       end
     end
 
@@ -35,7 +35,7 @@ module RobotChallenge
     def process_command_strings(command_strings)
       commands = @parser.parse_commands(command_strings)
       @dispatcher.dispatch_commands(commands) do |formatted_message|
-        @output_handler.call(formatted_message) if formatted_message
+        handle_output(formatted_message)
       end
     end
 
@@ -50,6 +50,10 @@ module RobotChallenge
     end
 
     private
+
+    def handle_output(formatted_message)
+      @output_handler.call(formatted_message) if formatted_message
+    end
 
     def default_output_handler(message)
       puts message
