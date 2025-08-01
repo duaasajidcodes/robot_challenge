@@ -7,8 +7,9 @@ $LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
 require 'robot_challenge'
 
 # Parse command line arguments for table dimensions
-table_width = 5
-table_height = 5
+# Support both environment variables and command line arguments
+table_width = ENV.fetch('ROBOT_TABLE_WIDTH', 5).to_i
+table_height = ENV.fetch('ROBOT_TABLE_HEIGHT', 5).to_i
 
 ARGV.each_with_index do |arg, index|
   case arg
@@ -27,9 +28,14 @@ ARGV.each_with_index do |arg, index|
         --height, -h HEIGHT  Set table height (default: 5)
         --help               Show this help message
 
+      Environment Variables:
+        ROBOT_TABLE_WIDTH    Set table width (default: 5)
+        ROBOT_TABLE_HEIGHT   Set table height (default: 5)
+
       Examples:
         #{$PROGRAM_NAME}                    # Run with default 5x5 table
         #{$PROGRAM_NAME} -w 10 -h 8        # Run with 10x8 table
+        ROBOT_TABLE_WIDTH=10 #{$PROGRAM_NAME} # Run with 10x5 table
         #{$PROGRAM_NAME} < commands.txt    # Run with input from file
     HELP
     exit(0)

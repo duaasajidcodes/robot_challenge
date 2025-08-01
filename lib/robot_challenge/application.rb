@@ -5,7 +5,11 @@ module RobotChallenge
   class Application
     attr_reader :robot, :processor, :input_source, :output_destination
 
-    def initialize(table_width: 5, table_height: 5, input_source: $stdin, output_destination: $stdout)
+    def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout)
+      # Support environment variables for table dimensions
+      table_width ||= ENV.fetch('ROBOT_TABLE_WIDTH', 5).to_i
+      table_height ||= ENV.fetch('ROBOT_TABLE_HEIGHT', 5).to_i
+      
       @table = Table.new(table_width, table_height)
       @robot = Robot.new(@table)
       @input_source = input_source
@@ -70,6 +74,8 @@ module RobotChallenge
     end
 
     def run_batch_mode
+      # Use streaming to process large files efficiently
+      # This prevents loading entire file into memory
       input_source.each_line do |line|
         command_string = line.chomp
         processor.process_command_string(command_string)
@@ -103,7 +109,7 @@ module RobotChallenge
     def display_goodbye_message
       return unless input_source.tty?
 
-      output_destination.puts 'Goodbye!'
+      output_destination.puts "\nThank you for using Robot Challenge Simulator!"
     end
   end
 end

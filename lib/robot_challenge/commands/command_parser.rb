@@ -2,88 +2,59 @@
 
 module RobotChallenge
   module Commands
-    # Abstract base class for command parsers
+    # Base class for command parsers
     class CommandParser
-      # Parse a command string and return parsed parameters
-      # @param command_string [String] the command string to parse
-      # @return [Hash, nil] parsed parameters or nil if parsing fails
+      attr_reader :command_name
+
+      def initialize(command_name)
+        @command_name = command_name.to_s.upcase
+      end
+
       def parse(command_string)
         raise NotImplementedError, "#{self.class} must implement #parse"
       end
-
-      # Check if this parser can handle the given command
-      # @param command_string [String] the command string to check
-      # @return [Boolean] true if this parser can handle the command
-      def can_parse?(command_string)
-        raise NotImplementedError, "#{self.class} must implement #can_parse?"
-      end
     end
 
-    # Default parser for simple commands with no parameters
+    # Parser for simple commands without parameters
     class SimpleCommandParser < CommandParser
-      def initialize(command_name)
-        @command_name = command_name.upcase
-      end
-
-      def can_parse?(command_string)
-        return false if command_string.nil? || command_string.strip.empty?
-
-        parts = command_string.strip.upcase.split(/\s+/, 2)
-        parts[0] == @command_name
-      end
-
       def parse(command_string)
-        return nil unless can_parse?(command_string)
-
-        {
-          name: @command_name,
-          params: {}
-        }
+        return nil unless command_string.strip.upcase == command_name
+        {}
       end
     end
 
-    # Parser for PLACE command with X,Y,DIRECTION format
+    # Parser for PLACE command
     class PlaceCommandParser < CommandParser
-      def can_parse?(command_string)
-        return false if command_string.nil? || command_string.strip.empty?
-
-        parts = command_string.strip.upcase.split(/\s+/, 2)
-        parts[0] == 'PLACE' && parts[1]&.include?(',')
+      def initialize
+        super('PLACE')
       end
 
       def parse(command_string)
-        return nil unless can_parse?(command_string)
+        return nil unless command_string.start_with?('PLACE ')
 
-        parts = command_string.strip.upcase.split(/\s+/, 2)
-        args = parts[1]
+        # Extract parameters after PLACE
+        params = command_string[6..-1].strip
+        return nil if params.empty?
 
-        return nil if args.nil? || args.empty?
+        # Parse X,Y,DIRECTION format
+        parts = params.split(',')
+        return nil unless parts.length == 3
 
-        # Expected format: "X,Y,DIRECTION"
-        arg_parts = args.split(',')
-        return nil unless arg_parts.length == 3
-
-        x, y, direction_name = arg_parts.map(&:strip)
-
+        x, y, direction = parts.map(&:strip)
+        
         # Validate coordinates are integers
-        begin
-          x_coord = Integer(x)
-          y_coord = Integer(y)
-        rescue ArgumentError
-          return nil
-        end
-
+        return nil unless x.match?(/^\d+$/) && y.match?(/^\d+$/)
+        
         # Validate direction
-        return nil unless Direction::VALID_DIRECTIONS.include?(direction_name.upcase)
+        return nil unless Direction.valid_directions.include?(direction.upcase)
 
         {
-          name: 'PLACE',
-          params: {
-            x: x_coord,
-            y: y_coord,
-            direction: direction_name.upcase
-          }
+          x: x.to_i,
+          y: y.to_i,
+          direction: direction.upcase
         }
+      rescue StandardError
+        nil
       end
     end
   end
