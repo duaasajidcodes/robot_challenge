@@ -20,7 +20,7 @@ module RobotChallenge
 
         command_string = command_string.strip.upcase
         parser = find_parser_for_command(command_string)
-        
+
         if parser
           parsed_params = parser.parse(command_string)
           return nil unless parsed_params
@@ -71,7 +71,7 @@ module RobotChallenge
       def register_default_parsers
         # Register PLACE command parser
         register_parser(PlaceCommandParser.new)
-        
+
         # Register simple parsers for commands without parameters
         %w[MOVE LEFT RIGHT REPORT].each do |command_name|
           register_parser(SimpleCommandParser.new(command_name))

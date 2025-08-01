@@ -70,14 +70,58 @@ REPORT
 # Output: 3,3,NORTH
 ```
 
+## Environment Configuration
+
+The application supports multiple environment configurations through `.env` files:
+
+### Environment Files
+
+- `.env.test` - Test environment configuration
+- `.env.development` - Development environment configuration  
+- `.env.production` - Production environment configuration
+
+### Configuration Options
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ROBOT_TABLE_WIDTH` | Table width | 5 |
+| `ROBOT_TABLE_HEIGHT` | Table height | 5 |
+| `ROBOT_TEST_MODE` | Enable test mode | false |
+| `ROBOT_DEBUG_MODE` | Enable debug mode | false |
+| `ROBOT_OUTPUT_FORMAT` | Output format | text |
+| `ROBOT_QUIET_MODE` | Suppress output | false |
+| `ROBOT_MAX_COMMANDS` | Maximum commands to process | 100000 |
+| `ROBOT_TIMEOUT_SECONDS` | Command timeout | 60 |
+| `ROBOT_TEST_DATA_DIR` | Test data directory | test_data |
+| `ROBOT_LOG_LEVEL` | Log level | info |
+
+### Usage Examples
+
+```bash
+# Run with test environment
+./bin/test
+
+# Run with development environment
+./bin/dev
+
+# Run with custom table size
+ROBOT_TABLE_WIDTH=10 ROBOT_TABLE_HEIGHT=8 ./bin/robot_challenge
+
+# Run with debug mode
+ROBOT_DEBUG_MODE=true ./bin/robot_challenge
+```
+
 ## Testing
 
 ```bash
-# Run all tests
-bundle exec rspec
+# Run all tests with test environment
+./bin/test
+
+# Run specific test files
+./bin/test spec/robot_challenge/
 
 # Run with coverage
-bundle exec rspec --format documentation
+./bin/test --format documentation
 
 # Run linting
 bundle exec rubocop

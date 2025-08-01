@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Development runner for Robot Challenge
+# This script runs the application with development environment configuration
+
+# Set development environment
+ENV['ROBOT_ENV'] = 'development'
+
+# Load development configuration
+require_relative '../lib/robot_challenge'
+dev_config = RobotChallenge::Config.for_environment('development')
+
+puts '🚀 Running Robot Challenge in Development Mode'
+puts "Environment: #{ENV.fetch('ROBOT_ENV', nil)}"
+puts "Table Size: #{dev_config.table_width}x#{dev_config.table_height}"
+puts "Debug Mode: #{dev_config.debug_mode?}"
+puts "Log Level: #{dev_config.log_level}"
+puts '=' * 50
+
+# Run the application
+exec('ruby', 'bin/robot_challenge', *ARGV)

@@ -11,6 +11,7 @@ if ENV['COVERAGE']
 end
 
 require_relative '../lib/robot_challenge'
+require_relative 'test_helper'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

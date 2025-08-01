@@ -16,7 +16,7 @@ module RobotChallenge
       def register(name, command_class, aliases: [])
         name = name.to_s.upcase
         @commands[name] = command_class
-        
+
         # Register aliases
         aliases.each do |alias_name|
           @aliases[alias_name.to_s.upcase] = name

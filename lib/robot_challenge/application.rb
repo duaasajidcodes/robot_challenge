@@ -5,11 +5,14 @@ module RobotChallenge
   class Application
     attr_reader :robot, :processor, :input_source, :output_destination
 
-    def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout)
+    def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout, config: nil)
+      # Load configuration
+      @config = config || Config.for_environment
+
       # Support environment variables for table dimensions
-      table_width ||= ENV.fetch('ROBOT_TABLE_WIDTH', 5).to_i
-      table_height ||= ENV.fetch('ROBOT_TABLE_HEIGHT', 5).to_i
-      
+      table_width ||= @config.table_width
+      table_height ||= @config.table_height
+
       @table = Table.new(table_width, table_height)
       @robot = Robot.new(@table)
       @input_source = input_source

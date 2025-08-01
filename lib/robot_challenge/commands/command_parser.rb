@@ -19,6 +19,7 @@ module RobotChallenge
     class SimpleCommandParser < CommandParser
       def parse(command_string)
         return nil unless command_string.strip.upcase == command_name
+
         {}
       end
     end
@@ -33,7 +34,7 @@ module RobotChallenge
         return nil unless command_string.start_with?('PLACE ')
 
         # Extract parameters after PLACE
-        params = command_string[6..-1].strip
+        params = command_string[6..].strip
         return nil if params.empty?
 
         # Parse X,Y,DIRECTION format
@@ -41,10 +42,10 @@ module RobotChallenge
         return nil unless parts.length == 3
 
         x, y, direction = parts.map(&:strip)
-        
+
         # Validate coordinates are integers
         return nil unless x.match?(/^\d+$/) && y.match?(/^\d+$/)
-        
+
         # Validate direction
         return nil unless Direction.valid_directions.include?(direction.upcase)
 
