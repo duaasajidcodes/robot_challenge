@@ -2,6 +2,8 @@
 
 require_relative 'robot_challenge/version'
 require_relative 'robot_challenge/config'
+require_relative 'robot_challenge/input_source'
+require_relative 'robot_challenge/output_formatter'
 require_relative 'robot_challenge/position'
 require_relative 'robot_challenge/direction'
 require_relative 'robot_challenge/robot'

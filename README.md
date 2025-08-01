@@ -120,6 +120,166 @@ end
 app.processor.command_factory.register_parser(JsonCommandParser.new)
 ```
 
+## Input Source Resilience
+
+The application is highly resilient to changes in input sources and requires **minimal changes** to support new sources:
+
+### Supported Input Sources
+
+```bash
+# Standard input (stdin)
+echo "PLACE 0,0,NORTH" | ./bin/robot_challenge
+
+# File input (positional argument)
+./bin/robot_challenge commands.txt
+
+# File input (explicit flag)
+./bin/robot_challenge -i commands.txt
+
+# File input (stdin redirection)
+./bin/robot_challenge < commands.txt
+```
+
+### Input Source Abstraction
+
+The application uses a flexible input source abstraction:
+
+```ruby
+# Built-in input sources
+RobotChallenge::StdinInputSource.new($stdin)
+RobotChallenge::FileInputSource.new('commands.txt')
+RobotChallenge::StringInputSource.new("PLACE 0,0,NORTH\nMOVE")
+RobotChallenge::ArrayInputSource.new(['PLACE 0,0,NORTH', 'MOVE'])
+
+# Factory methods for easy creation
+RobotChallenge::InputSourceFactory.from_file_path('commands.txt')
+RobotChallenge::InputSourceFactory.from_string("PLACE 0,0,NORTH")
+RobotChallenge::InputSourceFactory.from_array(['PLACE 0,0,NORTH'])
+RobotChallenge::InputSourceFactory.from_stdin($stdin)
+```
+
+### Adding New Input Sources
+
+To add support for new input sources, simply implement the `InputSource` interface:
+
+```ruby
+# Example: Add support for network input
+class NetworkInputSource < RobotChallenge::InputSource
+  def initialize(socket)
+    @socket = socket
+  end
+
+  def each_line(&block)
+    @socket.each_line(&block)
+  end
+
+  def close
+    @socket.close
+  end
+end
+
+# Use the new input source
+app = RobotChallenge::Application.new(
+  input_source: NetworkInputSource.new(socket)
+)
+```
+
+### Minimal Changes Required
+
+- **Single line** to add new input source: `class NewInputSource < InputSource`
+- **No code changes** needed for existing functionality
+- **Backward compatible** with all existing input sources
+- **Automatic detection** via `InputSourceFactory.create()`
+
+## Output Format Resilience
+
+The application is highly resilient to changes in output formats and requires **minimal changes** to support new formats:
+
+### Supported Output Formats
+
+```bash
+# Text format (default)
+./bin/robot_challenge
+echo "PLACE 0,0,NORTH" | ./bin/robot_challenge
+
+# JSON format
+./bin/robot_challenge -o json
+ROBOT_OUTPUT_FORMAT=json ./bin/robot_challenge
+
+# XML format
+./bin/robot_challenge -o xml
+ROBOT_OUTPUT_FORMAT=xml ./bin/robot_challenge
+
+# CSV format
+./bin/robot_challenge -o csv
+ROBOT_OUTPUT_FORMAT=csv ./bin/robot_challenge
+
+# Quiet mode (no output)
+./bin/robot_challenge -o quiet
+ROBOT_OUTPUT_FORMAT=quiet ./bin/robot_challenge
+```
+
+### Output Format Abstraction
+
+The application uses a flexible output formatter abstraction:
+
+```ruby
+# Built-in output formatters
+RobotChallenge::TextOutputFormatter.new
+RobotChallenge::JsonOutputFormatter.new
+RobotChallenge::XmlOutputFormatter.new
+RobotChallenge::CsvOutputFormatter.new
+RobotChallenge::QuietOutputFormatter.new
+
+# Factory methods for easy creation
+RobotChallenge::OutputFormatterFactory.create('json')
+RobotChallenge::OutputFormatterFactory.create('xml')
+RobotChallenge::OutputFormatterFactory.from_environment
+```
+
+### Adding New Output Formats
+
+To add support for new output formats, simply implement the `OutputFormatter` interface:
+
+```ruby
+# Example: Add support for YAML output
+class YamlOutputFormatter < RobotChallenge::OutputFormatter
+  def format_report(robot)
+    require 'yaml'
+    {
+      status: 'success',
+      type: 'report',
+      data: {
+        position: { x: robot.position.x, y: robot.position.y },
+        direction: robot.direction.name,
+        formatted: robot.report
+      }
+    }.to_yaml
+  end
+
+  def format_error(message, error_type = :general_error)
+    require 'yaml'
+    {
+      status: 'error',
+      type: error_type.to_s,
+      message: message
+    }.to_yaml
+  end
+
+  # ... implement other methods
+end
+
+# Use the new output formatter
+app = Application.new(output_formatter: YamlOutputFormatter.new)
+```
+
+### Minimal Changes Required
+
+- **Single line** to add new output formatter: `class NewOutputFormatter < OutputFormatter`
+- **No code changes** needed for existing functionality
+- **Backward compatible** with all existing output formats
+- **Automatic detection** via `OutputFormatterFactory.create()`
+
 ## Examples
 
 ```

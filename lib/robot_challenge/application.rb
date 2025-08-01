@@ -5,7 +5,8 @@ module RobotChallenge
   class Application
     attr_reader :robot, :processor, :input_source, :output_destination
 
-    def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout, config: nil)
+    def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout, config: nil,
+                   output_formatter: nil)
       # Load configuration
       @config = config || Config.for_environment
 
@@ -15,14 +16,28 @@ module RobotChallenge
 
       @table = Table.new(table_width, table_height)
       @robot = Robot.new(@table)
-      @input_source = input_source
+      @input_source = InputSourceFactory.create(input_source)
       @output_destination = output_destination
-      @processor = CommandProcessor.new(@robot, output_handler: method(:output_handler))
+      @output_formatter = output_formatter || OutputFormatterFactory.from_environment
+      @processor = CommandProcessor.new(@robot, output_handler: method(:output_handler),
+                                                output_formatter: @output_formatter)
     end
 
     # Set a custom output handler for testing
     def set_output_handler(handler)
-      @processor = CommandProcessor.new(@robot, output_handler: handler)
+      @processor = CommandProcessor.new(@robot, output_handler: handler, output_formatter: @output_formatter)
+    end
+
+    def set_input_source(source)
+      @input_source = InputSourceFactory.create(source)
+    end
+
+    # Set a custom output formatter for testing
+    def set_output_formatter(formatter)
+      @output_formatter = formatter
+      # Recreate processor with new output formatter
+      @processor = CommandProcessor.new(@robot, output_handler: method(:output_handler),
+                                                output_formatter: @output_formatter)
     end
 
     # Run the application
@@ -92,27 +107,15 @@ module RobotChallenge
     def display_welcome_message
       return unless input_source.tty?
 
-      output_destination.puts <<~WELCOME
-        Robot Challenge Simulator
-        ========================
-
-        Commands:
-          PLACE X,Y,F  - Place robot at position (X,Y) facing direction F
-          MOVE         - Move robot one step forward
-          LEFT         - Turn robot 90° counter-clockwise
-          RIGHT        - Turn robot 90° clockwise
-          REPORT       - Show current position and direction
-
-        Table size: #{@table}
-        Valid directions: #{Direction.valid_directions.join(', ')}
-
-      WELCOME
+      message = @output_formatter.format_welcome_message(@table, Direction.valid_directions)
+      output_destination.puts message if message
     end
 
     def display_goodbye_message
       return unless input_source.tty?
 
-      output_destination.puts "\nThank you for using Robot Challenge Simulator!"
+      message = @output_formatter.format_goodbye_message
+      output_destination.puts message if message
     end
   end
 end

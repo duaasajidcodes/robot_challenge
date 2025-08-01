@@ -49,21 +49,21 @@ RSpec.describe 'Input Format Resilience' do
 
     it 'handles standard format' do
       output = capture_output do
-        app.process_commands(['MOVE', 'REPORT'])
+        app.process_commands(%w[MOVE REPORT])
       end
       expect(output).to include('0,1,NORTH')
     end
 
     it 'handles case insensitive format' do
       output = capture_output do
-        app.process_commands(['move', 'report'])
+        app.process_commands(%w[move report])
       end
       expect(output).to include('0,1,NORTH')
     end
 
     it 'handles mixed case format' do
       output = capture_output do
-        app.process_commands(['Move', 'Report'])
+        app.process_commands(%w[Move Report])
       end
       expect(output).to include('0,1,NORTH')
     end
@@ -155,4 +155,4 @@ RSpec.describe 'Input Format Resilience' do
     yield
     output.join("\n")
   end
-end 
+end

@@ -7,10 +7,11 @@ module RobotChallenge
   class CommandProcessor
     attr_reader :robot, :output_handler, :command_factory
 
-    def initialize(robot, output_handler: nil, command_factory: nil)
+    def initialize(robot, output_handler: nil, command_factory: nil, output_formatter: nil)
       @robot = robot
       @output_handler = output_handler || method(:default_output_handler)
       @command_factory = command_factory || Commands::CommandFactory.new
+      @output_formatter = output_formatter || OutputFormatterFactory.from_environment
     end
 
     # Process a command string
@@ -57,12 +58,23 @@ module RobotChallenge
     def handle_result(result)
       case result[:status]
       when :output
-        output_handler.call(result[:message])
+        # Use output formatter for robot reports
+        if result[:message].is_a?(String) && result[:message].match?(/^\d+,\d+,(NORTH|SOUTH|EAST|WEST)$/)
+          # This is a robot report, format it properly
+          formatted_message = @output_formatter.format_report(@robot)
+          output_handler.call(formatted_message) if formatted_message
+        else
+          # Regular message, pass through
+          output_handler.call(result[:message])
+        end
       when :error
-        # Silently ignore errors as per requirements
-        # The robot should ignore invalid commands and continue
+        # Use output formatter for errors
+        formatted_message = @output_formatter.format_error(result[:message], result[:error_type])
+        output_handler.call(formatted_message) if formatted_message
       when :success
-        # Command executed successfully, no output needed
+        # Use output formatter for success messages
+        formatted_message = @output_formatter.format_success(result[:message])
+        output_handler.call(formatted_message) if formatted_message
       end
     end
 

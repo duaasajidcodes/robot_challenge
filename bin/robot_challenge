@@ -11,36 +11,53 @@ require 'robot_challenge'
 table_width = ENV.fetch('ROBOT_TABLE_WIDTH', 5).to_i
 table_height = ENV.fetch('ROBOT_TABLE_HEIGHT', 5).to_i
 
+input_file = nil
+output_format = ENV.fetch('ROBOT_OUTPUT_FORMAT', nil)
+
 ARGV.each_with_index do |arg, index|
   case arg
   when '--width', '-w'
     table_width = ARGV[index + 1].to_i if ARGV[index + 1]
   when '--height', '-h'
     table_height = ARGV[index + 1].to_i if ARGV[index + 1]
+  when '--input', '-i'
+    input_file = ARGV[index + 1] if ARGV[index + 1]
+  when '--output', '-o'
+    output_format = ARGV[index + 1] if ARGV[index + 1]
   when '--help'
     puts <<~HELP
       Robot Challenge Simulator
 
-      Usage: #{$PROGRAM_NAME} [options]
+      Usage: #{$PROGRAM_NAME} [options] [input_file]
 
       Options:
         --width, -w WIDTH    Set table width (default: 5)
         --height, -h HEIGHT  Set table height (default: 5)
+        --input, -i FILE     Read commands from file
+        --output, -o FORMAT  Set output format (text, json, xml, csv, quiet)
         --help               Show this help message
 
       Environment Variables:
         ROBOT_TABLE_WIDTH    Set table width (default: 5)
         ROBOT_TABLE_HEIGHT   Set table height (default: 5)
+        ROBOT_OUTPUT_FORMAT  Set output format (text, json, xml, csv, quiet)
 
       Examples:
         #{$PROGRAM_NAME}                    # Run with default 5x5 table
         #{$PROGRAM_NAME} -w 10 -h 8        # Run with 10x8 table
         ROBOT_TABLE_WIDTH=10 #{$PROGRAM_NAME} # Run with 10x5 table
-        #{$PROGRAM_NAME} < commands.txt    # Run with input from file
+        #{$PROGRAM_NAME} < commands.txt    # Run with input from stdin
+        #{$PROGRAM_NAME} commands.txt      # Run with input from file
+        #{$PROGRAM_NAME} -i commands.txt   # Run with input from file
+        #{$PROGRAM_NAME} -o json           # Run with JSON output
+        #{$PROGRAM_NAME} -o xml            # Run with XML output
     HELP
     exit(0)
   end
 end
+
+# Check for input file as positional argument if not specified with --input
+input_file = ARGV.first if input_file.nil? && ARGV.any? && !ARGV.first.start_with?('-')
 
 # Validate table dimensions
 if table_width < 1 || table_height < 1
@@ -52,7 +69,9 @@ end
 begin
   app = RobotChallenge::Application.new(
     table_width: table_width,
-    table_height: table_height
+    table_height: table_height,
+    input_source: input_file || $stdin,
+    output_formatter: output_format ? RobotChallenge::OutputFormatterFactory.create(output_format) : nil
   )
   app.run
 rescue StandardError => e

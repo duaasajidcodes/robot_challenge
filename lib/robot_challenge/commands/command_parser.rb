@@ -94,7 +94,9 @@ module RobotChallenge
         parts = params.split(/\s+/)
         return nil unless parts.length >= 3
 
-        x, y, direction = parts[0], parts[1], parts[2]
+        x = parts[0]
+        y = parts[1]
+        direction = parts[2]
         validate_and_create_params(x, y, direction)
       end
 
@@ -123,22 +125,18 @@ module RobotChallenge
 
     # Flexible parser that can handle multiple command formats
     class FlexibleCommandParser < CommandParser
-      def initialize(command_name)
-        super(command_name)
-      end
-
       def parse(command_string)
         normalized = normalize_command(command_string)
-        
+
         # Try exact match first
         return {} if normalized == command_name
-        
+
         # Try with extra whitespace
         return {} if normalized.gsub(/\s+/, '') == command_name
-        
+
         # Try with different separators
         return {} if normalized.gsub(/[_\-\s]+/, '') == command_name
-        
+
         nil
       end
     end
