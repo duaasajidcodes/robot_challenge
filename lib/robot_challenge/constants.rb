@@ -74,4 +74,4 @@ module RobotChallenge
       log_level: 'info'
     }.freeze
   end
-end 
+end

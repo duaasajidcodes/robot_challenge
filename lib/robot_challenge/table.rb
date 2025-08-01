@@ -2,6 +2,8 @@
 
 module RobotChallenge
   class Table
+    include TableOperations
+
     attr_reader :width, :height
 
     def initialize(width = 5, height = 5)

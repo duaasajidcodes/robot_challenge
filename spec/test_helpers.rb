@@ -119,9 +119,8 @@ module TestHelpers
     end
 
     def create_command_factory_with_custom_commands
-      factory = RobotChallenge::Commands::CommandFactory.new
+      RobotChallenge::Commands::CommandFactory.new
       # Add any custom commands here if needed
-      factory
     end
   end
 end
@@ -132,4 +131,4 @@ RSpec.configure do |config|
   config.include TestHelpers::Assertions
   config.include TestHelpers::Setup
   config.include TestHelpers::Factories
-end 
+end

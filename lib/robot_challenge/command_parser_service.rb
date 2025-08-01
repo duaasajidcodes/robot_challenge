@@ -4,6 +4,8 @@ module RobotChallenge
   # Responsible for parsing command strings into command objects
   # Separates command parsing from command execution (SRP)
   class CommandParserService
+    include CommandParser
+
     attr_reader :command_factory
 
     def initialize(command_factory: nil)

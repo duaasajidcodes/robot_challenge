@@ -6,7 +6,8 @@ module RobotChallenge
     attr_reader :robot, :processor, :input_source, :output_destination
 
     def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout, config: nil,
-                   output_formatter: nil)
+                   output_formatter: nil, processor: nil, robot: nil, table: nil, logger: nil,
+                   command_parser: nil, command_dispatcher: nil)
       # Load configuration
       @config = config || Config.for_environment
 
@@ -14,12 +15,13 @@ module RobotChallenge
       table_width ||= @config.table_width
       table_height ||= @config.table_height
 
-      @table = Table.new(table_width, table_height)
-      @robot = Robot.new(@table)
+      @table = table || Table.new(table_width, table_height)
+      @robot = robot || processor&.robot || Robot.new(@table)
       @input_source = InputSourceFactory.create(input_source)
       @output_destination = output_destination
       @output_formatter = output_formatter || OutputFormatterFactory.from_environment
-      @processor = create_processor(method(:output_handler))
+      @logger = logger || LoggerFactory.from_environment
+      @processor = processor || create_processor(method(:output_handler), command_parser, command_dispatcher)
     end
 
     # Set a custom output handler for testing
@@ -78,8 +80,16 @@ module RobotChallenge
 
     private
 
-    def create_processor(output_handler)
-      CommandProcessor.new(@robot, output_handler: output_handler, output_formatter: @output_formatter)
+    def create_processor(output_handler, command_parser = nil, command_dispatcher = nil)
+      # Create dispatcher with output formatter if not provided
+      dispatcher = command_dispatcher || CommandDispatcher.new(@robot, output_formatter: @output_formatter,
+                                                                       logger: @logger)
+
+      CommandProcessor.new(@robot,
+                           output_handler: output_handler,
+                           parser: command_parser,
+                           dispatcher: dispatcher,
+                           logger: @logger)
     end
 
     def run_interactive_mode

@@ -4,21 +4,26 @@ module RobotChallenge
   # Responsible for dispatching and executing commands
   # Separates command execution from command parsing (SRP)
   class CommandDispatcher
+    include CommandDispatcherInterface
+
     attr_reader :robot, :output_formatter
 
-    def initialize(robot, output_formatter: nil)
+    def initialize(robot, output_formatter: nil, logger: nil)
       @robot = robot
       @output_formatter = output_formatter || OutputFormatterFactory.from_environment
+      @logger = logger || LoggerFactory.from_environment
     end
 
     # Execute a command object
     def dispatch(command, &block)
       return false if command.nil?
 
+      @logger.debug("Dispatching command: #{command.class}")
       begin
         result = command.execute(robot)
         handle_result(result, &block)
       rescue StandardError => e
+        @logger.error("Error executing command: #{e.message}")
         # Silently ignore errors as per requirements
         handle_result(error_result(e.message, :execution_error), &block)
       end

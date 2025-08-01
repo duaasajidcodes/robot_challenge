@@ -3,6 +3,8 @@
 require_relative 'robot_challenge/version'
 require_relative 'robot_challenge/constants'
 require_relative 'robot_challenge/config'
+require_relative 'robot_challenge/interfaces'
+require_relative 'robot_challenge/logger'
 require_relative 'robot_challenge/input_source'
 require_relative 'robot_challenge/output_formatter'
 require_relative 'robot_challenge/position'
@@ -21,6 +23,7 @@ require_relative 'robot_challenge/command_parser_service'
 require_relative 'robot_challenge/command_dispatcher'
 require_relative 'robot_challenge/command_processor'
 require_relative 'robot_challenge/cli_argument_parser'
+require_relative 'robot_challenge/dependency_container'
 require_relative 'robot_challenge/application'
 
 module RobotChallenge

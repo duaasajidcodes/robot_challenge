@@ -69,7 +69,7 @@ module RobotChallenge
 
     def format_welcome_message(table, valid_directions)
       commands = command_descriptions
-      
+
       <<~WELCOME
         #{Constants::APPLICATION_NAME}
         ========================
@@ -184,7 +184,7 @@ module RobotChallenge
     def format_welcome_message(table, valid_directions)
       table_info = table_data(table)
       commands = command_descriptions
-      
+
       <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <robot_welcome>
@@ -232,7 +232,7 @@ module RobotChallenge
     def format_welcome_message(table, valid_directions)
       table_info = table_data(table)
       commands = command_descriptions
-      
+
       <<~CSV
         type,key,value
         application,name,Robot Challenge Simulator

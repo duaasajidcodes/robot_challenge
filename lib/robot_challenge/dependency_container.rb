@@ -1,0 +1,127 @@
+# frozen_string_literal: true
+
+module RobotChallenge
+  # Dependency Container for managing and injecting dependencies
+  # Implements Dependency Inversion Principle
+  class DependencyContainer
+    def initialize
+      @dependencies = {}
+      @factories = {}
+      register_defaults
+    end
+
+    # Register a singleton dependency
+    def register(name, instance)
+      @dependencies[name] = instance
+    end
+
+    # Register a factory for creating dependencies
+    def register_factory(name, &block)
+      @factories[name] = block
+    end
+
+    # Resolve a dependency
+    def resolve(name)
+      return @dependencies[name] if @dependencies.key?(name)
+      return @factories[name].call if @factories.key?(name)
+
+      raise ArgumentError, "Dependency '#{name}' not registered"
+    end
+
+    # Check if dependency is registered
+    def registered?(name)
+      @dependencies.key?(name) || @factories.key?(name)
+    end
+
+    # Create a new instance with resolved dependencies
+    def create(klass, **overrides)
+      # Get constructor parameters
+      constructor = klass.instance_method(:initialize)
+      params = constructor.parameters
+
+      # Build arguments hash
+      args = {}
+      params.each do |type, param|
+        next if overrides.key?(param)
+
+        # Handle required parameters (no default)
+        if type == :req && !registered?(param)
+          raise ArgumentError, "Required parameter '#{param}' not registered in container"
+        end
+
+        # Try to resolve from container
+        args[param] = resolve(param) if registered?(param)
+      end
+
+      # Apply overrides
+      args.merge!(overrides)
+
+      # Create instance
+      klass.new(**args)
+    end
+
+    private
+
+    def register_defaults
+      # Register default factories
+      register_factory(:logger) { LoggerFactory.from_environment }
+      register_factory(:output_formatter) { OutputFormatterFactory.from_environment }
+      register_factory(:config) { Config.for_environment }
+
+      # Register factory for table (needs dimensions)
+      register_factory(:table) do
+        config = resolve(:config)
+        Table.new(config.table_width, config.table_height)
+      end
+
+      # Register factory for robot (depends on table)
+      register_factory(:robot) do
+        table = resolve(:table)
+        Robot.new(table)
+      end
+
+      # Register factory for command parser
+      register_factory(:command_parser) do
+        CommandParserService.new
+      end
+
+      # Register factory for command dispatcher
+      register_factory(:command_dispatcher) do
+        robot = resolve(:robot)
+        output_formatter = resolve(:output_formatter)
+        logger = resolve(:logger)
+        CommandDispatcher.new(robot, output_formatter: output_formatter, logger: logger)
+      end
+
+      # Register factory for command processor
+      register_factory(:command_processor) do
+        robot = resolve(:robot)
+        parser = resolve(:command_parser)
+        dispatcher = resolve(:command_dispatcher)
+        logger = resolve(:logger)
+        CommandProcessor.new(robot, parser: parser, dispatcher: dispatcher, logger: logger)
+      end
+    end
+  end
+
+  # Global dependency container instance
+  @container = nil
+
+  def self.container
+    @container ||= DependencyContainer.new
+  end
+
+  def self.container=(container)
+    @container = container
+  end
+
+  # Helper method to resolve dependencies
+  def self.resolve(name)
+    container.resolve(name)
+  end
+
+  # Helper method to create instances with dependencies
+  def self.create(klass, **overrides)
+    container.create(klass, **overrides)
+  end
+end

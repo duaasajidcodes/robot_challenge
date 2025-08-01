@@ -46,9 +46,9 @@ module RobotChallenge
     end
 
     def validate!
-      if table_width < 1 || table_height < 1
-        raise ArgumentError, 'Table dimensions must be positive integers'
-      end
+      return unless table_width < 1 || table_height < 1
+
+      raise ArgumentError, 'Table dimensions must be positive integers'
     end
 
     private
@@ -78,4 +78,4 @@ module RobotChallenge
       @input_file = @argv.first if @input_file.nil? && @argv.any? && !@argv.first.start_with?('-')
     end
   end
-end 
+end

@@ -23,14 +23,14 @@ rescue ArgumentError => e
   exit(1)
 end
 
-# Create and run the application
+# Create application with dependency injection
 begin
   app = RobotChallenge::Application.new(
-    table_width: parser.table_width,
-    table_height: parser.table_height,
     input_source: parser.input_file || $stdin,
+    output_destination: $stdout,
     output_formatter: parser.output_format ? RobotChallenge::OutputFormatterFactory.create(parser.output_format) : nil
   )
+
   app.run
 rescue StandardError => e
   warn "Error: #{e.message}"

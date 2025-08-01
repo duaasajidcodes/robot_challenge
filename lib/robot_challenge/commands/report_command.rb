@@ -12,8 +12,6 @@ module RobotChallenge
           output_result(report)
         end
       end
-
-
     end
   end
 end

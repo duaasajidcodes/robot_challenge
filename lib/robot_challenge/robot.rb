@@ -2,6 +2,8 @@
 
 module RobotChallenge
   class Robot
+    include RobotOperations
+
     attr_reader :position, :direction, :table
 
     def initialize(table)

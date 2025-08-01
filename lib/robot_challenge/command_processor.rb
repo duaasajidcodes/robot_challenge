@@ -11,21 +11,24 @@ module RobotChallenge
       @parser.command_factory
     end
 
-    def initialize(robot, output_handler: nil, command_factory: nil, output_formatter: nil)
+    def initialize(robot, output_handler: nil, parser: nil, dispatcher: nil, logger: nil)
       @robot = robot
       @output_handler = output_handler || method(:default_output_handler)
-      @parser = CommandParserService.new(command_factory: command_factory)
-      @dispatcher = CommandDispatcher.new(robot, output_formatter: output_formatter)
+      @parser = parser || CommandParserService.new
+      @dispatcher = dispatcher || CommandDispatcher.new(robot)
+      @logger = logger || LoggerFactory.from_environment
     end
 
     # Process a command string
     def process_command_string(command_string)
+      @logger.debug("Processing command: #{command_string}")
       command = @parser.parse(command_string)
       process_command(command)
     end
 
     # Process a command object
     def process_command(command)
+      @logger.debug("Executing command: #{command.class}")
       @dispatcher.dispatch(command) do |formatted_message|
         handle_output(formatted_message)
       end

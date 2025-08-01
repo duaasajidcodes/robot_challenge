@@ -12,8 +12,6 @@ module RobotChallenge
           success_result
         end
       end
-
-
     end
   end
 end

@@ -477,6 +477,121 @@ High-level modules depend on abstractions:
 - `CommandProcessor` depends on `CommandParserService` and `CommandDispatcher`
 - `CommandFactory` depends on `CommandRegistry` abstraction
 
+## Dependency Inversion Principle (DIP) Compliance
+
+The application implements proper dependency injection and inversion for easier testing and more flexible design:
+
+### **Interfaces and Abstractions:**
+
+1. **`CommandParser`** - Interface for command parsing
+2. **`CommandDispatcherInterface`** - Interface for command dispatching  
+3. **`OutputHandler`** - Interface for output handling
+4. **`RobotOperations`** - Interface for robot operations
+5. **`TableOperations`** - Interface for table operations
+6. **`Logger`** - Interface for logging
+
+### **Dependency Injection Benefits:**
+
+#### **Before (Tight Coupling):**
+```ruby
+# Hard to test - dependencies created internally
+class CommandProcessor
+  def initialize(robot)
+    @robot = robot
+    @parser = CommandParserService.new  # Hard-coded dependency
+    @dispatcher = CommandDispatcher.new(robot)  # Hard-coded dependency
+  end
+end
+
+# Hard to mock - concrete implementations everywhere
+app = Application.new  # Creates all dependencies internally
+```
+
+#### **After (Dependency Injection):**
+```ruby
+# Easy to test - dependencies injected
+class CommandProcessor
+  def initialize(robot, parser: nil, dispatcher: nil, logger: nil)
+    @robot = robot
+    @parser = parser || CommandParserService.new
+    @dispatcher = dispatcher || CommandDispatcher.new(robot)
+    @logger = logger || LoggerFactory.from_environment
+  end
+end
+
+# Easy to mock - inject test doubles
+mock_parser = double('MockParser')
+mock_dispatcher = double('MockDispatcher')
+app = Application.new(command_parser: mock_parser, command_dispatcher: mock_dispatcher)
+```
+
+### **Testing Benefits:**
+
+#### **Mock Dependencies:**
+```ruby
+# Mock robot operations
+mock_robot = double('MockRobot')
+allow(mock_robot).to receive(:place).and_return(mock_robot)
+allow(mock_robot).to receive(:placed?).and_return(true)
+
+# Mock command parser
+mock_parser = double('MockParser')
+allow(mock_parser).to receive(:parse).and_return(mock_command)
+
+# Mock logger
+mock_logger = double('MockLogger')
+allow(mock_logger).to receive(:debug)
+allow(mock_logger).to receive(:error)
+
+# Inject mocks for testing
+processor = CommandProcessor.new(mock_robot, parser: mock_parser, logger: mock_logger)
+```
+
+#### **Custom Implementations:**
+```ruby
+# Custom robot implementation
+class TestRobot
+  include RobotOperations
+  def place(position, direction); end
+  def move; end
+  # ... other methods
+end
+
+# Custom logger implementation
+class TestLogger
+  include Logger
+  def info(message); end
+  def debug(message); end
+  # ... other methods
+end
+
+# Use custom implementations
+app = Application.new(robot: TestRobot.new, logger: TestLogger.new)
+```
+
+### **Dependency Container:**
+
+```ruby
+# Register dependencies
+container = DependencyContainer.new
+container.register(:logger, NullLogger.new)
+container.register(:robot, TestRobot.new)
+
+# Resolve dependencies
+logger = container.resolve(:logger)
+robot = container.resolve(:robot)
+
+# Create instances with resolved dependencies
+processor = container.create(CommandProcessor, robot: robot)
+```
+
+### **Benefits:**
+- ✅ **Easier Testing** - Inject mocks and test doubles
+- ✅ **Flexible Design** - Swap implementations without code changes
+- ✅ **Better Separation** - Dependencies are explicit and injectable
+- ✅ **Improved Maintainability** - Changes don't ripple through the system
+- ✅ **Enhanced Testability** - Isolate components for unit testing
+
 ## DRY (Don't Repeat Yourself) Compliance
 
 The application follows DRY principles to eliminate code duplication:
