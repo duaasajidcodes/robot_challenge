@@ -10,7 +10,12 @@ module RobotChallenge
       @robot = Robot.new(@table)
       @input_source = input_source
       @output_destination = output_destination
-      @processor = CommandProcessor.new(@robot, method(:output_handler))
+      @processor = CommandProcessor.new(@robot, output_handler: method(:output_handler))
+    end
+
+    # Set a custom output handler for testing
+    def set_output_handler(handler)
+      @processor = CommandProcessor.new(@robot, output_handler: handler)
     end
 
     # Run the application
@@ -33,33 +38,33 @@ module RobotChallenge
 
     # Process a single command string
     def process_command(command_string)
-      command = CommandParser.parse(command_string)
-      processor.process_command(command)
+      processor.process_command_string(command_string)
     end
 
+    # Process multiple command strings
     def process_commands(command_strings)
-      warn 'Warning: process_commands loads all commands into memory. Use streaming approach for large datasets.'
-      processor.process_commands(command_strings)
+      processor.process_command_strings(command_strings)
     end
 
-    def process_command_stream(input_stream)
-      processor.process_command_stream(input_stream)
+    # Register a new command type
+    def register_command(name, command_class)
+      processor.register_command(name, command_class)
+    end
+
+    # Get available commands
+    def available_commands
+      processor.available_commands
     end
 
     private
 
     def run_interactive_mode
-      output_destination.puts 'Interactive mode - enter commands (type EXIT or QUIT to exit):'
+      output_destination.puts 'Interactive mode - enter commands (Ctrl-C to exit):'
       output_destination.print '> '
 
       input_source.each_line do |line|
         command_string = line.chomp
-
-        break if exit_command?(command_string)
-
-        should_exit = process_command(command_string)
-        break if should_exit
-
+        processor.process_command_string(command_string)
         output_destination.print '> '
       end
     end
@@ -67,14 +72,8 @@ module RobotChallenge
     def run_batch_mode
       input_source.each_line do |line|
         command_string = line.chomp
-        should_exit = process_command(command_string)
-        break if should_exit
+        processor.process_command_string(command_string)
       end
-    end
-
-    def exit_command?(command_string)
-      normalized = command_string.strip.upcase
-      %w[EXIT QUIT].include?(normalized)
     end
 
     def output_handler(message)
@@ -92,9 +91,8 @@ module RobotChallenge
           PLACE X,Y,F  - Place robot at position (X,Y) facing direction F
           MOVE         - Move robot one step forward
           LEFT         - Turn robot 90° counter-clockwise
-          RIGHT        - Turn robot 90° clockwise#{'  '}
+          RIGHT        - Turn robot 90° clockwise
           REPORT       - Show current position and direction
-          EXIT/QUIT    - Exit the application
 
         Table size: #{@table}
         Valid directions: #{Direction.valid_directions.join(', ')}

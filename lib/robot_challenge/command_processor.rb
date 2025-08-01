@@ -1,86 +1,74 @@
 # frozen_string_literal: true
 
-module RobotChallenge
-  class CommandProcessor
-    attr_reader :robot, :output_handler
+require_relative 'commands/command_factory'
 
-    def initialize(robot, output_handler = nil)
+module RobotChallenge
+  # Processes commands using the Command Pattern
+  class CommandProcessor
+    attr_reader :robot, :output_handler, :command_factory
+
+    def initialize(robot, output_handler: nil, command_factory: nil)
       @robot = robot
       @output_handler = output_handler || method(:default_output_handler)
+      @command_factory = command_factory || Commands::CommandFactory.new
     end
 
+    # Process a command string
+    def process_command_string(command_string)
+      command = command_factory.create_from_string(command_string)
+      process_command(command)
+    end
+
+    # Process a command object
     def process_command(command)
       return false if command.nil?
 
-      case command[:command]
-      when :place
-        process_place_command(command)
-      when :move
-        process_move_command
-      when :left
-        process_left_command
-      when :right
-        process_right_command
-      when :report
-        process_report_command
-      when :exit, :quit
-        return true
-      else
-        false
+      begin
+        result = command.execute(robot)
+        handle_result(result)
+      rescue StandardError => e
+        # Silently ignore errors as per requirements
+        # The robot should ignore invalid commands and continue
+        handle_result(error_result(e.message, :execution_error))
       end
 
-      false
-    rescue RobotChallenge::Error => e
-      handle_error(e)
-      false
+      false # Continue processing
     end
 
-    def process_commands(command_strings)
-      warn 'Warning: process_commands loads all commands into memory. Use streaming approach for large datasets.'
+    # Process a sequence of command strings
+    def process_command_strings(command_strings)
       command_strings.each do |command_string|
-        command = CommandParser.parse(command_string)
-        should_exit = process_command(command)
-        return if should_exit
+        process_command_string(command_string)
       end
     end
 
-    def process_command_stream(input_stream)
-      input_stream.each_line do |line|
-        command_string = line.chomp
-        next if command_string.empty?
+    # Get available commands
+    def available_commands
+      command_factory.available_commands
+    end
 
-        command = CommandParser.parse(command_string)
-        should_exit = process_command(command)
-        return if should_exit
-      end
+    # Register a new command type
+    def register_command(name, command_class)
+      command_factory.register_command(name, command_class)
     end
 
     private
 
-    def process_place_command(command)
-      position = Position.new(command[:x], command[:y])
-      direction = Direction.new(command[:direction])
-      robot.place(position, direction)
+    def handle_result(result)
+      case result[:status]
+      when :output
+        output_handler.call(result[:message])
+      when :error
+        # Silently ignore errors as per requirements
+        # The robot should ignore invalid commands and continue
+      when :success
+        # Command executed successfully, no output needed
+      end
     end
 
-    def process_move_command
-      robot.move
+    def error_result(message, error_type = :general_error)
+      { status: :error, message: message, error_type: error_type }
     end
-
-    def process_left_command
-      robot.turn_left
-    end
-
-    def process_right_command
-      robot.turn_right
-    end
-
-    def process_report_command
-      report = robot.report
-      output_handler.call(report)
-    end
-
-    def handle_error(error); end
 
     def default_output_handler(message)
       puts message

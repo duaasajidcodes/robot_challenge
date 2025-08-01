@@ -119,12 +119,44 @@ robot_challenge/
 
 ## Architecture
 
-The application follows SOLID principles and uses dependency injection for extensibility:
+The application follows SOLID principles and uses the Command Pattern for maximum extensibility:
 
 - **Robot**: Core entity with position and direction
-- **Table**: Boundary validation and constraints
-- **CommandProcessor**: Command parsing and execution
+- **Table**: Boundary validation and constraints  
+- **Command Pattern**: Each command is a self-contained class
+- **CommandFactory**: Handles command parsing and creation
+- **CommandRegistry**: Manages available commands
+- **CommandProcessor**: Executes commands using polymorphism
 - **Application**: Main orchestration and I/O handling
+
+### Adding New Commands
+
+Adding new commands requires **zero modifications** to existing code:
+
+```ruby
+# 1. Create new command class
+class MyCustomCommand < RobotChallenge::Commands::Command
+  def execute(robot)
+    # Your command logic here
+    output_result("Custom command executed!")
+  end
+end
+
+# 2. Register with application
+app.register_command('CUSTOM', MyCustomCommand)
+
+# 3. Use immediately!
+app.process_command("CUSTOM")
+```
+
+**Examples of easy extensions:**
+- `STATUS` - Show detailed robot information
+- `RESET` - Reset robot to unplaced state
+- `HISTORY` - Show movement history
+- `TELEPORT X,Y` - Jump to position
+- `VALIDATE` - Check robot state
+
+See `bin/extensibility_demo` for a live demonstration!
 
 ## License
 

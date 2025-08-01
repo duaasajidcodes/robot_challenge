@@ -64,19 +64,5 @@ module RobotChallenge
     def inspect
       "#<Robot:#{object_id} position=#{position&.inspect}, direction=#{direction&.inspect}>"
     end
-
-    def reset
-      @position = nil
-      @direction = nil
-      self
-    end
-
-    def can_move?
-      return false unless placed?
-
-      delta_x, delta_y = direction.delta
-      new_position = position.move(delta_x, delta_y)
-      table.valid_position?(new_position)
-    end
   end
 end

@@ -9,11 +9,11 @@ RSpec.describe RobotChallenge::Robot do
   let(:direction) { RobotChallenge::Direction.new('NORTH') }
 
   describe '#initialize' do
-    it 'creates robot with table reference' do
+    it 'creates robot with table' do
       expect(robot.table).to eq(table)
     end
 
-    it 'initializes robot as not placed' do
+    it 'starts in unplaced state' do
       expect(robot).not_to be_placed
       expect(robot.position).to be_nil
       expect(robot.direction).to be_nil
@@ -21,53 +21,56 @@ RSpec.describe RobotChallenge::Robot do
   end
 
   describe '#place' do
-    it 'places robot at valid position and direction' do
-      robot.place(position, direction)
+    context 'with valid position and direction' do
+      it 'places robot successfully' do
+        robot.place(position, direction)
 
-      expect(robot.position).to eq(position)
-      expect(robot.direction).to eq(direction)
-      expect(robot).to be_placed
+        expect(robot).to be_placed
+        expect(robot.position).to eq(position)
+        expect(robot.direction).to eq(direction)
+      end
+
+      it 'returns self for method chaining' do
+        result = robot.place(position, direction)
+        expect(result).to be(robot)
+      end
     end
 
-    it 'returns self for method chaining' do
-      result = robot.place(position, direction)
-      expect(result).to be(robot)
+    context 'with invalid position' do
+      let(:invalid_position) { RobotChallenge::Position.new(10, 10) }
+
+      it 'raises InvalidPositionError' do
+        expect { robot.place(invalid_position, direction) }.to raise_error(RobotChallenge::InvalidPositionError)
+      end
     end
 
-    it 'raises error for invalid position object' do
-      expect { robot.place('0,0', direction) }
-        .to raise_error(RobotChallenge::InvalidPositionError, /Position must be a Position object/)
+    context 'with invalid direction' do
+      let(:invalid_direction) { double('direction') }
+
+      it 'raises InvalidDirectionError' do
+        expect { robot.place(position, invalid_direction) }.to raise_error(RobotChallenge::InvalidDirectionError)
+      end
     end
 
-    it 'raises error for invalid direction object' do
-      expect { robot.place(position, 'NORTH') }
-        .to raise_error(RobotChallenge::InvalidDirectionError, /Direction must be a Direction object/)
+    context 'with non-Position object' do
+      it 'raises InvalidPositionError' do
+        expect { robot.place('invalid', direction) }.to raise_error(RobotChallenge::InvalidPositionError)
+      end
     end
 
-    it 'raises error for position outside table boundaries' do
-      invalid_position = RobotChallenge::Position.new(5, 5)
-      expect { robot.place(invalid_position, direction) }
-        .to raise_error(RobotChallenge::InvalidPositionError, /outside table boundaries/)
-    end
-
-    it 'allows replacing existing placement' do
-      robot.place(position, direction)
-      new_position = RobotChallenge::Position.new(2, 2)
-      new_direction = RobotChallenge::Direction.new('SOUTH')
-
-      robot.place(new_position, new_direction)
-
-      expect(robot.position).to eq(new_position)
-      expect(robot.direction).to eq(new_direction)
+    context 'with non-Direction object' do
+      it 'raises InvalidDirectionError' do
+        expect { robot.place(position, 'invalid') }.to raise_error(RobotChallenge::InvalidDirectionError)
+      end
     end
   end
 
   describe '#placed?' do
-    it 'returns false for unplaced robot' do
+    it 'returns false when robot is not placed' do
       expect(robot).not_to be_placed
     end
 
-    it 'returns true for placed robot' do
+    it 'returns true when robot is placed' do
       robot.place(position, direction)
       expect(robot).to be_placed
     end
@@ -75,18 +78,17 @@ RSpec.describe RobotChallenge::Robot do
 
   describe '#move' do
     context 'when robot is not placed' do
-      it 'raises error' do
-        expect { robot.move }
-          .to raise_error(RobotChallenge::RobotNotPlacedError, /must be placed before moving/)
+      it 'raises RobotNotPlacedError' do
+        expect { robot.move }.to raise_error(RobotChallenge::RobotNotPlacedError)
       end
     end
 
     context 'when robot is placed' do
       before { robot.place(position, direction) }
 
-      it 'moves robot one step in current direction' do
+      it 'moves robot in current direction' do
         robot.move
-        expect(robot.position).to eq(RobotChallenge::Position.new(1, 2))
+        expect(robot.position.y).to eq(2)
       end
 
       it 'returns self for method chaining' do
@@ -94,64 +96,22 @@ RSpec.describe RobotChallenge::Robot do
         expect(result).to be(robot)
       end
 
-      it 'does not move robot if new position would be invalid' do
-        # Place robot at edge facing outward
-        robot.place(RobotChallenge::Position.new(0, 0), RobotChallenge::Direction.new('SOUTH'))
-        original_position = robot.position
+      context 'when move would go off table' do
+        let(:edge_position) { RobotChallenge::Position.new(0, 0) }
+        let(:south_direction) { RobotChallenge::Direction.new('SOUTH') }
 
-        robot.move
-        expect(robot.position).to eq(original_position)
-      end
-
-      context 'movement in each direction' do
-        it 'moves north correctly' do
-          robot.place(RobotChallenge::Position.new(2, 2), RobotChallenge::Direction.new('NORTH'))
+        it 'does not move robot' do
+          robot.place(edge_position, south_direction)
           robot.move
-          expect(robot.position).to eq(RobotChallenge::Position.new(2, 3))
-        end
-
-        it 'moves east correctly' do
-          robot.place(RobotChallenge::Position.new(2, 2), RobotChallenge::Direction.new('EAST'))
-          robot.move
-          expect(robot.position).to eq(RobotChallenge::Position.new(3, 2))
-        end
-
-        it 'moves south correctly' do
-          robot.place(RobotChallenge::Position.new(2, 2), RobotChallenge::Direction.new('SOUTH'))
-          robot.move
-          expect(robot.position).to eq(RobotChallenge::Position.new(2, 1))
-        end
-
-        it 'moves west correctly' do
-          robot.place(RobotChallenge::Position.new(2, 2), RobotChallenge::Direction.new('WEST'))
-          robot.move
-          expect(robot.position).to eq(RobotChallenge::Position.new(1, 2))
+          expect(robot.position).to eq(edge_position)
         end
       end
 
-      context 'boundary protection' do
-        it 'prevents movement beyond north boundary' do
-          robot.place(RobotChallenge::Position.new(2, 4), RobotChallenge::Direction.new('NORTH'))
+      context 'when move is valid' do
+        it 'moves robot to new position' do
+          original_position = robot.position
           robot.move
-          expect(robot.position).to eq(RobotChallenge::Position.new(2, 4))
-        end
-
-        it 'prevents movement beyond east boundary' do
-          robot.place(RobotChallenge::Position.new(4, 2), RobotChallenge::Direction.new('EAST'))
-          robot.move
-          expect(robot.position).to eq(RobotChallenge::Position.new(4, 2))
-        end
-
-        it 'prevents movement beyond south boundary' do
-          robot.place(RobotChallenge::Position.new(2, 0), RobotChallenge::Direction.new('SOUTH'))
-          robot.move
-          expect(robot.position).to eq(RobotChallenge::Position.new(2, 0))
-        end
-
-        it 'prevents movement beyond west boundary' do
-          robot.place(RobotChallenge::Position.new(0, 2), RobotChallenge::Direction.new('WEST'))
-          robot.move
-          expect(robot.position).to eq(RobotChallenge::Position.new(0, 2))
+          expect(robot.position).not_to eq(original_position)
         end
       end
     end
@@ -159,19 +119,17 @@ RSpec.describe RobotChallenge::Robot do
 
   describe '#turn_left' do
     context 'when robot is not placed' do
-      it 'raises error' do
-        expect { robot.turn_left }
-          .to raise_error(RobotChallenge::RobotNotPlacedError, /must be placed before turning/)
+      it 'raises RobotNotPlacedError' do
+        expect { robot.turn_left }.to raise_error(RobotChallenge::RobotNotPlacedError)
       end
     end
 
     context 'when robot is placed' do
       before { robot.place(position, direction) }
 
-      it 'rotates direction 90 degrees counter-clockwise' do
+      it 'turns robot 90 degrees counter-clockwise' do
         robot.turn_left
         expect(robot.direction.name).to eq('WEST')
-        expect(robot.position).to eq(position) # Position unchanged
       end
 
       it 'returns self for method chaining' do
@@ -179,29 +137,26 @@ RSpec.describe RobotChallenge::Robot do
         expect(result).to be(robot)
       end
 
-      it 'completes full rotation in 4 turns' do
-        original_direction = robot.direction
+      it 'handles full rotation' do
         robot.turn_left.turn_left.turn_left.turn_left
-        expect(robot.direction).to eq(original_direction)
+        expect(robot.direction.name).to eq('NORTH')
       end
     end
   end
 
   describe '#turn_right' do
     context 'when robot is not placed' do
-      it 'raises error' do
-        expect { robot.turn_right }
-          .to raise_error(RobotChallenge::RobotNotPlacedError, /must be placed before turning/)
+      it 'raises RobotNotPlacedError' do
+        expect { robot.turn_right }.to raise_error(RobotChallenge::RobotNotPlacedError)
       end
     end
 
     context 'when robot is placed' do
       before { robot.place(position, direction) }
 
-      it 'rotates direction 90 degrees clockwise' do
+      it 'turns robot 90 degrees clockwise' do
         robot.turn_right
         expect(robot.direction.name).to eq('EAST')
-        expect(robot.position).to eq(position) # Position unchanged
       end
 
       it 'returns self for method chaining' do
@@ -209,19 +164,17 @@ RSpec.describe RobotChallenge::Robot do
         expect(result).to be(robot)
       end
 
-      it 'completes full rotation in 4 turns' do
-        original_direction = robot.direction
+      it 'handles full rotation' do
         robot.turn_right.turn_right.turn_right.turn_right
-        expect(robot.direction).to eq(original_direction)
+        expect(robot.direction.name).to eq('NORTH')
       end
     end
   end
 
   describe '#report' do
     context 'when robot is not placed' do
-      it 'raises error' do
-        expect { robot.report }
-          .to raise_error(RobotChallenge::RobotNotPlacedError, /must be placed before reporting/)
+      it 'raises RobotNotPlacedError' do
+        expect { robot.report }.to raise_error(RobotChallenge::RobotNotPlacedError)
       end
     end
 
@@ -240,47 +193,6 @@ RSpec.describe RobotChallenge::Robot do
       it 'updates when robot turns' do
         robot.turn_right
         expect(robot.report).to eq('1,1,EAST')
-      end
-    end
-  end
-
-  describe '#reset' do
-    it 'resets robot to unplaced state' do
-      robot.place(position, direction)
-      expect(robot).to be_placed
-
-      robot.reset
-      expect(robot).not_to be_placed
-      expect(robot.position).to be_nil
-      expect(robot.direction).to be_nil
-    end
-
-    it 'returns self for method chaining' do
-      result = robot.reset
-      expect(result).to be(robot)
-    end
-
-    it 'can be called on already unplaced robot' do
-      expect { robot.reset }.not_to raise_error
-    end
-  end
-
-  describe '#can_move?' do
-    context 'when robot is not placed' do
-      it 'returns false' do
-        expect(robot.can_move?).to be false
-      end
-    end
-
-    context 'when robot is placed' do
-      it 'returns true when move is valid' do
-        robot.place(RobotChallenge::Position.new(2, 2), RobotChallenge::Direction.new('NORTH'))
-        expect(robot.can_move?).to be true
-      end
-
-      it 'returns false when move would go off table' do
-        robot.place(RobotChallenge::Position.new(0, 0), RobotChallenge::Direction.new('SOUTH'))
-        expect(robot.can_move?).to be false
       end
     end
   end

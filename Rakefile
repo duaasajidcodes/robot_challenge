@@ -1,5 +1,15 @@
 # frozen_string_literal: true
 
+desc 'Run extensibility test runner'
+task :test_extensibility do
+  ruby 'bin/extensibility_test_runner'
+end
+
+desc 'Run all tests including extensibility'
+task test_all: %i[spec test_extensibility]
+
+# frozen_string_literal: true
+
 require 'rake'
 require 'rspec/core/rake_task'
 require 'rubocop/rake_task'
@@ -26,7 +36,6 @@ RuboCop::RakeTask.new('rubocop:auto_correct') do |task|
   task.options = ['--auto-correct']
 end
 
-# Custom tasks
 desc 'Run the robot challenge application'
 task :run do
   ruby '-Ilib bin/robot_challenge'
@@ -37,6 +46,17 @@ task :run_example do
   sh 'ruby -Ilib bin/robot_challenge < test_data/example_commands.txt'
 end
 
+desc 'Demonstrate command extensibility'
+task :demo_extensibility do
+  ruby 'bin/extensibility_demo'
+end
+
+desc 'Show how to add new commands'
+task :demo_extensions do
+  ruby 'bin/demo_extensions'
+end
+
+# Utility tasks
 desc 'Clean temporary files'
 task :clean do
   sh 'rm -rf coverage tmp'
