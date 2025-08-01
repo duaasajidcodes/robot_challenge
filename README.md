@@ -434,6 +434,49 @@ app.process_command("CUSTOM")
 
 See `bin/extensibility_demo` for a live demonstration!
 
+## SOLID Principles Compliance
+
+The application follows SOLID principles to ensure maintainable and extensible code:
+
+### **Single Responsibility Principle (SRP)**
+Each class has a single, well-defined responsibility:
+
+- **`CommandParserService`** - Responsible for parsing command strings into command objects
+- **`CommandDispatcher`** - Responsible for executing commands and handling results
+- **`CommandProcessor`** - Coordinates parsing and dispatching (facade pattern)
+- **`CliArgumentParser`** - Responsible for parsing command line arguments
+- **`OutputFormatter`** - Responsible for formatting output in different formats
+- **`InputSource`** - Responsible for reading input from different sources
+
+### **Open/Closed Principle (OCP)**
+The application is open for extension but closed for modification:
+
+- **Commands**: New commands can be added without modifying existing code
+- **Output Formats**: New output formats can be added by implementing `OutputFormatter`
+- **Input Sources**: New input sources can be added by implementing `InputSource`
+- **Parsers**: New command parsers can be added to the factory
+
+### **Liskov Substitution Principle (LSP)**
+All implementations can be substituted for their base classes:
+
+- All `OutputFormatter` implementations can be used interchangeably
+- All `InputSource` implementations can be used interchangeably
+- All `Command` implementations can be used interchangeably
+
+### **Interface Segregation Principle (ISP)**
+Interfaces are focused and specific:
+
+- `OutputFormatter` has focused methods for different output types
+- `InputSource` has a minimal interface for reading input
+- `Command` has a focused interface for execution
+
+### **Dependency Inversion Principle (DIP)**
+High-level modules depend on abstractions:
+
+- `Application` depends on `InputSource` and `OutputFormatter` abstractions
+- `CommandProcessor` depends on `CommandParserService` and `CommandDispatcher`
+- `CommandFactory` depends on `CommandRegistry` abstraction
+
 ## License
 
 MIT License
