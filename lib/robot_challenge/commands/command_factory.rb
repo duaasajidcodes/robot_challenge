@@ -69,12 +69,12 @@ module RobotChallenge
       end
 
       def register_default_parsers
-        # Register PLACE command parser
+        # Register PLACE command parser (most flexible)
         register_parser(PlaceCommandParser.new)
 
-        # Register simple parsers for commands without parameters
+        # Register flexible parsers for simple commands
         %w[MOVE LEFT RIGHT REPORT].each do |command_name|
-          register_parser(SimpleCommandParser.new(command_name))
+          register_parser(FlexibleCommandParser.new(command_name))
         end
       end
     end

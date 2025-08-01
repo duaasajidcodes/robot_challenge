@@ -1,0 +1,41 @@
+# Test file demonstrating input format resilience
+# This file contains various input formats that should all work
+
+# Standard format
+PLACE 0,0,NORTH
+MOVE
+REPORT
+
+# Space-separated format
+PLACE 1 1 SOUTH
+MOVE
+REPORT
+
+# Mixed whitespace format
+  PLACE  2 , 2 , EAST  
+  MOVE  
+  LEFT  
+  REPORT  
+
+# Case insensitive
+place 3,3,west
+move
+right
+report
+
+# Extra whitespace and mixed case
+  PLACE  4 , 4 , NORTH  
+  MOVE  
+  LEFT  
+  REPORT  
+
+# Invalid commands (should be ignored gracefully)
+INVALID_COMMAND
+PLACE 1,2,INVALID_DIRECTION
+PLACE 1,2
+PLACE
+
+# Valid commands after invalid ones
+PLACE 0,0,NORTH
+MOVE
+REPORT 

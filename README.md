@@ -46,7 +46,79 @@ ruby -Ilib bin/robot_challenge < test_data/example_commands.txt
 - `LEFT` - Rotates the robot 90 degrees counter-clockwise
 - `RIGHT` - Rotates the robot 90 degrees clockwise
 - `REPORT` - Outputs the current position and direction of the robot
-- `EXIT` or `QUIT` - Exits the application
+
+## Input Format Resilience
+
+The application is highly resilient to input format variations and requires **minimal changes** to support new formats:
+
+### Supported PLACE Command Formats
+
+```bash
+# Standard format
+PLACE 1,2,NORTH
+
+# Space-separated format
+PLACE 1 2 NORTH
+
+# Mixed whitespace format
+PLACE  1 , 2 , NORTH
+
+# Case insensitive
+place 1,2,north
+Place 1,2,North
+```
+
+### Supported Simple Command Formats
+
+```bash
+# Standard format
+MOVE
+LEFT
+RIGHT
+REPORT
+
+# Case insensitive
+move
+left
+right
+report
+
+# Mixed case
+Move
+Left
+Right
+Report
+
+# Extra whitespace
+  MOVE  
+  LEFT  
+  REPORT  
+```
+
+### Graceful Error Handling
+
+- **Invalid commands** are silently ignored
+- **Incomplete PLACE commands** are ignored
+- **Invalid directions** are ignored
+- **Empty lines** are ignored
+- **Whitespace-only lines** are ignored
+- **Mixed valid/invalid commands** work correctly
+
+### Adding New Input Formats
+
+To add support for new input formats, simply register a new parser:
+
+```ruby
+# Example: Add support for JSON format
+class JsonCommandParser < CommandParser
+  def parse(command_string)
+    # Parse JSON format
+  end
+end
+
+# Register the parser
+app.processor.command_factory.register_parser(JsonCommandParser.new)
+```
 
 ## Examples
 
