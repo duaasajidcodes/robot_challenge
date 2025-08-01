@@ -8,10 +8,8 @@ module RobotChallenge
     def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout, config: nil,
                    output_formatter: nil, processor: nil, robot: nil, table: nil, logger: nil,
                    command_parser: nil, command_dispatcher: nil)
-      # Load configuration
       @config = config || Config.for_environment
 
-      # Support environment variables for table dimensions
       table_width ||= @config.table_width
       table_height ||= @config.table_height
 

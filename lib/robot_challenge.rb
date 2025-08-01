@@ -17,14 +17,15 @@ require_relative 'robot_challenge/commands/move_command'
 require_relative 'robot_challenge/commands/left_command'
 require_relative 'robot_challenge/commands/right_command'
 require_relative 'robot_challenge/commands/report_command'
-require_relative 'robot_challenge/commands/command_registry'
 require_relative 'robot_challenge/commands/command_factory'
+require_relative 'robot_challenge/commands/command_registry'
+require_relative 'robot_challenge/commands/command_parser'
 require_relative 'robot_challenge/command_parser_service'
 require_relative 'robot_challenge/command_dispatcher'
 require_relative 'robot_challenge/command_processor'
-require_relative 'robot_challenge/cli_argument_parser'
-require_relative 'robot_challenge/dependency_container'
 require_relative 'robot_challenge/application'
+require_relative 'robot_challenge/dependency_container'
+require_relative 'robot_challenge/cache'
 
 module RobotChallenge
   class Error < StandardError; end
