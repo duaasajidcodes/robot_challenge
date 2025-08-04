@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Dependency Container for managing and injecting dependencies
-  # Implements Dependency Inversion Principle
+  # Dependency injection container for managing object dependencies
   class DependencyContainer
     def initialize
       @dependencies = {}
@@ -10,17 +9,17 @@ module RobotChallenge
       register_defaults
     end
 
-    # Register a singleton dependency
+    # Register a singleton instance
     def register(name, instance)
       @dependencies[name] = instance
     end
 
-    # Register a factory for creating dependencies
+    # Register a factory for creating instances
     def register_factory(name, &block)
       @factories[name] = block
     end
 
-    # Resolve a dependency
+    # Resolve a dependency by name
     def resolve(name)
       return @dependencies[name] if @dependencies.key?(name)
       return @factories[name].call if @factories.key?(name)
@@ -35,65 +34,67 @@ module RobotChallenge
 
     # Create a new instance with resolved dependencies
     def create(klass, **overrides)
-      # Get constructor parameters
       constructor = klass.instance_method(:initialize)
       params = constructor.parameters
-
-      # Build arguments hash
-      args = {}
-      params.each do |type, param|
-        next if overrides.key?(param)
-
-        # Handle required parameters (no default)
-        if type == :req && !registered?(param)
-          raise ArgumentError, "Required parameter '#{param}' not registered in container"
-        end
-
-        # Try to resolve from container
-        args[param] = resolve(param) if registered?(param)
-      end
-
-      # Apply overrides
-      args.merge!(overrides)
-
-      # Create instance
+      args = build_arguments(params, overrides)
       klass.new(**args)
     end
 
     private
 
+    def build_arguments(params, overrides)
+      args = {}
+      params.each do |type, param|
+        next if overrides.key?(param)
+
+        if type == :req && !registered?(param)
+          raise ArgumentError, "Required parameter '#{param}' not registered in container"
+        end
+
+        args[param] = resolve(param) if registered?(param)
+      end
+      args.merge!(overrides)
+    end
+
     def register_defaults
-      # Register default factories
+      register_basic_factories
+      register_table_factory
+      register_robot_factory
+      register_command_factories
+      register_processor_factory
+    end
+
+    def register_basic_factories
       register_factory(:logger) { LoggerFactory.from_environment }
       register_factory(:output_formatter) { OutputFormatterFactory.from_environment }
       register_factory(:config) { Config.for_environment }
+    end
 
-      # Register factory for table (needs dimensions)
+    def register_table_factory
       register_factory(:table) do
         config = resolve(:config)
         Table.new(config.table_width, config.table_height)
       end
+    end
 
-      # Register factory for robot (depends on table)
+    def register_robot_factory
       register_factory(:robot) do
         table = resolve(:table)
         Robot.new(table)
       end
+    end
 
-      # Register factory for command parser
-      register_factory(:command_parser) do
-        CommandParserService.new
-      end
-
-      # Register factory for command dispatcher
+    def register_command_factories
+      register_factory(:command_parser) { CommandParserService.new }
       register_factory(:command_dispatcher) do
         robot = resolve(:robot)
         output_formatter = resolve(:output_formatter)
         logger = resolve(:logger)
         CommandDispatcher.new(robot, output_formatter: output_formatter, logger: logger)
       end
+    end
 
-      # Register factory for command processor
+    def register_processor_factory
       register_factory(:command_processor) do
         robot = resolve(:robot)
         parser = resolve(:command_parser)

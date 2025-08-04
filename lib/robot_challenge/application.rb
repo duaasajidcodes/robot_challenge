@@ -9,18 +9,17 @@ require_relative 'config'
 
 module RobotChallenge
   class Application
-    attr_accessor :output_formatter
     attr_reader :robot, :table, :processor, :input_source, :output_destination
-    attr_writer :output_handler
+    attr_accessor :output_formatter
+
+    # Custom setter for output_handler to avoid conflicts
 
     def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout, config: nil,
                    output_formatter: nil, processor: nil, robot: nil, table: nil, logger: nil,
                    command_parser: nil, command_dispatcher: nil)
       @config = config || Config.for_environment
-      table_width ||= @config.table_width
-      table_height ||= @config.table_height
-      @table = table || Table.new(table_width, table_height)
-      @robot = robot || processor&.robot || Robot.new(@table)
+      @table = build_table(table_width, table_height, table)
+      @robot = build_robot(robot, processor)
       @input_source = InputSourceFactory.create(input_source)
       @output_destination = output_destination
       @output_formatter = output_formatter || OutputFormatterFactory.from_environment
@@ -36,6 +35,11 @@ module RobotChallenge
       @input_source = InputSourceFactory.create(source)
     end
 
+    def output_handler=(handler)
+      @output_handler = handler
+      processor.output_handler = handler if processor.respond_to?(:output_handler=)
+    end
+
     def set_output_handler(handler)
       @output_handler = handler
       processor.output_handler = handler if processor.respond_to?(:output_handler=)
@@ -43,12 +47,8 @@ module RobotChallenge
 
     def set_output_formatter(formatter)
       @output_formatter = formatter
-      # Update the processor's output handler to use the new formatter
-      processor.output_handler = method(:default_output_handler) if processor.respond_to?(:output_handler=)
-      # Update the dispatcher's formatter
-      return unless processor.dispatcher.respond_to?(:output_formatter=)
-
-      processor.dispatcher.output_formatter = formatter
+      update_processor_output_handler
+      update_dispatcher_formatter(formatter)
     end
 
     def run
@@ -87,6 +87,33 @@ module RobotChallenge
     end
 
     private
+
+    def build_table(table_width, table_height, table)
+      return table if table
+
+      width = table_width || @config.table_width
+      height = table_height || @config.table_height
+      Table.new(width, height)
+    end
+
+    def build_robot(robot, processor)
+      return robot if robot
+      return processor.robot if processor&.robot
+
+      Robot.new(@table)
+    end
+
+    def update_processor_output_handler
+      return unless processor.respond_to?(:output_handler=)
+
+      processor.output_handler = method(:default_output_handler)
+    end
+
+    def update_dispatcher_formatter(formatter)
+      return unless processor.dispatcher.respond_to?(:output_formatter=)
+
+      processor.dispatcher.output_formatter = formatter
+    end
 
     def display_welcome_message
       output_handler.call('Welcome to Robot Challenge!')

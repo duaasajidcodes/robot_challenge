@@ -54,28 +54,41 @@ module RobotChallenge
     private
 
     def parse_arguments
-      # Initialize with environment variable defaults
+      initialize_from_environment
+      parse_command_line_arguments
+      handle_positional_input_file
+    end
+
+    def initialize_from_environment
       @table_width = ENV.fetch('ROBOT_TABLE_WIDTH', 5).to_i
       @table_height = ENV.fetch('ROBOT_TABLE_HEIGHT', 5).to_i
       @input_file = nil
       @output_format = ENV.fetch('ROBOT_OUTPUT_FORMAT', nil)
+    end
 
-      # Parse command line arguments
+    def parse_command_line_arguments
       @argv.each_with_index do |arg, index|
-        case arg
-        when '--width', '-w'
-          @table_width = @argv[index + 1].to_i if @argv[index + 1]
-        when '--height', '-h'
-          @table_height = @argv[index + 1].to_i if @argv[index + 1]
-        when '--input', '-i'
-          @input_file = @argv[index + 1] if @argv[index + 1]
-        when '--output', '-o'
-          @output_format = @argv[index + 1] if @argv[index + 1]
-        end
+        parse_argument(arg, index)
       end
+    end
 
-      # Check for input file as positional argument if not specified with --input
-      @input_file = @argv.first if @input_file.nil? && @argv.any? && !@argv.first.start_with?('-')
+    def parse_argument(arg, index)
+      case arg
+      when '--width', '-w'
+        @table_width = @argv[index + 1].to_i if @argv[index + 1]
+      when '--height', '-h'
+        @table_height = @argv[index + 1].to_i if @argv[index + 1]
+      when '--input', '-i'
+        @input_file = @argv[index + 1] if @argv[index + 1]
+      when '--output', '-o'
+        @output_format = @argv[index + 1] if @argv[index + 1]
+      end
+    end
+
+    def handle_positional_input_file
+      return if @input_file || @argv.empty? || @argv.first.start_with?('-')
+
+      @input_file = @argv.first
     end
 
     def help_flag_not_height?

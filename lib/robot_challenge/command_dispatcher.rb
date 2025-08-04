@@ -39,31 +39,46 @@ module RobotChallenge
 
     private
 
-    def handle_result(result, &block)
+    def handle_result(result, &)
       case result[:status]
       when :output
-        # Use output formatter for robot reports
-        if result[:message].is_a?(RobotChallenge::Robot)
-          # This is a robot report, format it properly
-          formatted_message = @output_formatter.format_report(result[:message])
-          block.call(formatted_message) if formatted_message && block_given?
-        elsif result[:message].is_a?(String) && result[:message].match?(/^\d+,\d+,(NORTH|SOUTH|EAST|WEST)$/)
-          # This is a robot report string, format it properly
-          formatted_message = @output_formatter.format_report(@robot)
-          block.call(formatted_message) if formatted_message && block_given?
-        elsif block_given?
-          # Regular message, pass through
-          block.call(result[:message])
-        end
+        handle_output_result(result, &)
       when :error
-        # Use output formatter for errors
-        formatted_message = @output_formatter.format_error(result[:message], result[:error_type])
-        block.call(formatted_message) if formatted_message && block_given?
+        handle_error_result(result, &)
       when :success
-        # Use output formatter for success messages
-        formatted_message = @output_formatter.format_success(result[:message])
-        block.call(formatted_message) if formatted_message && block_given?
+        handle_success_result(result, &)
       end
+    end
+
+    def handle_output_result(result, &block)
+      message = result[:message]
+
+      if robot_report?(message)
+        handle_robot_report(message, &block)
+      elsif block_given?
+        block.call(message)
+      end
+    end
+
+    def handle_robot_report(message, &block)
+      robot_object = message.is_a?(RobotChallenge::Robot) ? message : @robot
+      formatted_message = @output_formatter.format_report(robot_object)
+      block.call(formatted_message) if formatted_message && block_given?
+    end
+
+    def robot_report?(message)
+      message.is_a?(RobotChallenge::Robot) ||
+        (message.is_a?(String) && message.match?(/^\d+,\d+,(NORTH|SOUTH|EAST|WEST)$/))
+    end
+
+    def handle_error_result(result, &block)
+      formatted_message = @output_formatter.format_error(result[:message], result[:error_type])
+      block.call(formatted_message) if formatted_message && block_given?
+    end
+
+    def handle_success_result(result, &block)
+      formatted_message = @output_formatter.format_success(result[:message])
+      block.call(formatted_message) if formatted_message && block_given?
     end
 
     def error_result(message, error_type = :general_error)

@@ -105,13 +105,23 @@ RSpec.describe 'Output Format Resilience' do
     describe 'JsonOutputFormatter' do
       let(:formatter) { RobotChallenge::JsonOutputFormatter.new }
 
-      it 'formats robot report as JSON' do
+      it 'formats robot report as JSON with correct status and type' do
         output = formatter.format_report(robot)
         parsed = JSON.parse(output)
         expect(parsed['status']).to eq('success')
         expect(parsed['type']).to eq('report')
+      end
+
+      it 'formats robot report as JSON with correct position data' do
+        output = formatter.format_report(robot)
+        parsed = JSON.parse(output)
         expect(parsed['data']['position']['x']).to eq(1)
         expect(parsed['data']['position']['y']).to eq(2)
+      end
+
+      it 'formats robot report as JSON with correct direction and format' do
+        output = formatter.format_report(robot)
+        parsed = JSON.parse(output)
         expect(parsed['data']['direction']).to eq('NORTH')
         expect(parsed['data']['formatted']).to eq('1,2,NORTH')
       end
@@ -143,11 +153,15 @@ RSpec.describe 'Output Format Resilience' do
     describe 'XmlOutputFormatter' do
       let(:formatter) { RobotChallenge::XmlOutputFormatter.new }
 
-      it 'formats robot report as XML' do
+      it 'formats robot report as XML with correct structure' do
         output = formatter.format_report(robot)
         expect(output).to include('<?xml version="1.0" encoding="UTF-8"?>')
         expect(output).to include('<robot_report>')
         expect(output).to include('<status>success</status>')
+      end
+
+      it 'formats robot report as XML with correct position data' do
+        output = formatter.format_report(robot)
         expect(output).to include('<x>1</x>')
         expect(output).to include('<y>2</y>')
         expect(output).to include('<direction>NORTH</direction>')
@@ -264,35 +278,35 @@ RSpec.describe 'Output Format Resilience' do
   end
 
   describe 'Custom output formatter' do
-    it 'allows custom output formatter implementation' do
-      # Custom formatter that adds timestamps
-      class TimestampOutputFormatter < RobotChallenge::OutputFormatter
-        def format_report(robot)
-          timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
-          "[#{timestamp}] #{robot.report}"
-        end
-
-        def format_error(message, _error_type = :general_error)
-          timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
-          "[#{timestamp}] ERROR: #{message}"
-        end
-
-        def format_success(message = nil)
-          timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
-          "[#{timestamp}] SUCCESS: #{message}"
-        end
-
-        def format_welcome_message(_table, _valid_directions)
-          timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
-          "[#{timestamp}] Welcome to Robot Challenge Simulator"
-        end
-
-        def format_goodbye_message
-          timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
-          "[#{timestamp}] Goodbye!"
-        end
+    # Custom formatter that adds timestamps
+    class TimestampOutputFormatter < RobotChallenge::OutputFormatter
+      def format_report(robot)
+        timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+        "[#{timestamp}] #{robot.report}"
       end
 
+      def format_error(message, _error_type = :general_error)
+        timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+        "[#{timestamp}] ERROR: #{message}"
+      end
+
+      def format_success(message = nil)
+        timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+        "[#{timestamp}] SUCCESS: #{message}"
+      end
+
+      def format_welcome_message(_table, _valid_directions)
+        timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+        "[#{timestamp}] Welcome to Robot Challenge Simulator"
+      end
+
+      def format_goodbye_message
+        timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+        "[#{timestamp}] Goodbye!"
+      end
+    end
+
+    it 'allows custom output formatter implementation' do
       app = create_test_application
       app.set_output_formatter(TimestampOutputFormatter.new)
 
@@ -308,9 +322,7 @@ RSpec.describe 'Output Format Resilience' do
   def capture_output(app)
     output = []
     # Create a custom output handler that captures messages
-    output_handler = lambda do |message|
-      output << message if message
-    end
+    output_handler = ->(message) { output << message if message }
     app.set_output_handler(output_handler)
     yield
     output.join("\n")

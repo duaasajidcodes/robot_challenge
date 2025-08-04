@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe 'Dependency Injection' do
+RSpec.describe RobotChallenge::DependencyContainer do
   include TestHelpers
 
   describe 'Interface Compliance' do
@@ -34,7 +34,7 @@ RSpec.describe 'Dependency Injection' do
   end
 
   describe 'Dependency Container' do
-    let(:container) { RobotChallenge::DependencyContainer.new }
+    let(:container) { described_class.new }
 
     it 'registers and resolves dependencies' do
       mock_logger = double('MockLogger')

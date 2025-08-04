@@ -14,16 +14,11 @@ module RobotChallenge
 
     # Load configuration from environment variables
     def load_from_environment
-      @table_width = ENV.fetch('ROBOT_TABLE_WIDTH', 5).to_i
-      @table_height = ENV.fetch('ROBOT_TABLE_HEIGHT', 5).to_i
-      @test_mode = ENV.fetch('ROBOT_TEST_MODE', 'false').downcase == 'true'
-      @debug_mode = ENV.fetch('ROBOT_DEBUG_MODE', 'false').downcase == 'true'
-      @output_format = ENV.fetch('ROBOT_OUTPUT_FORMAT', 'text')
-      @quiet_mode = ENV.fetch('ROBOT_QUIET_MODE', 'false').downcase == 'true'
-      @max_commands = ENV.fetch('ROBOT_MAX_COMMANDS', 100_000).to_i
-      @timeout_seconds = ENV.fetch('ROBOT_TIMEOUT_SECONDS', 60).to_i
-      @test_data_dir = ENV.fetch('ROBOT_TEST_DATA_DIR', 'test_data')
-      @log_level = ENV.fetch('ROBOT_LOG_LEVEL', 'info').to_sym
+      load_table_config
+      load_mode_config
+      load_output_config
+      load_limits_config
+      load_path_config
     end
 
     # Load configuration from a .env file
@@ -31,17 +26,7 @@ module RobotChallenge
       return unless File.exist?(file_path)
 
       File.readlines(file_path).each do |line|
-        line = line.strip
-        next if line.empty? || line.start_with?('#')
-
-        key, value = line.split('=', 2)
-        next unless key && value
-
-        # Remove quotes if present
-        value = value.gsub(/^["']|["']$/, '')
-
-        # Set environment variable
-        ENV[key.strip] = value.strip
+        process_env_line(line)
       end
     end
 
@@ -87,6 +72,51 @@ module RobotChallenge
       env_file = ".env.#{env}"
 
       new(env_file: env_file)
+    end
+
+    private
+
+    def load_table_config
+      @table_width = ENV.fetch('ROBOT_TABLE_WIDTH', 5).to_i
+      @table_height = ENV.fetch('ROBOT_TABLE_HEIGHT', 5).to_i
+    end
+
+    def load_mode_config
+      @test_mode = boolean_env('ROBOT_TEST_MODE', false)
+      @debug_mode = boolean_env('ROBOT_DEBUG_MODE', false)
+      @quiet_mode = boolean_env('ROBOT_QUIET_MODE', false)
+    end
+
+    def load_output_config
+      @output_format = ENV.fetch('ROBOT_OUTPUT_FORMAT', 'text')
+    end
+
+    def load_limits_config
+      @max_commands = ENV.fetch('ROBOT_MAX_COMMANDS', 100_000).to_i
+      @timeout_seconds = ENV.fetch('ROBOT_TIMEOUT_SECONDS', 60).to_i
+    end
+
+    def load_path_config
+      @test_data_dir = ENV.fetch('ROBOT_TEST_DATA_DIR', 'test_data')
+      @log_level = ENV.fetch('ROBOT_LOG_LEVEL', 'info').to_sym
+    end
+
+    def boolean_env(key, default)
+      ENV.fetch(key, default.to_s).downcase == 'true'
+    end
+
+    def process_env_line(line)
+      line = line.strip
+      return if line.empty? || line.start_with?('#')
+
+      key, value = line.split('=', 2)
+      return unless key && value
+
+      # Remove quotes if present
+      value = value.gsub(/^["']|["']$/, '')
+
+      # Set environment variable
+      ENV[key.strip] = value.strip
     end
   end
 end

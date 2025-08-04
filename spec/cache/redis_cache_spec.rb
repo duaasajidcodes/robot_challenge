@@ -244,15 +244,21 @@ RSpec.describe RobotChallenge::Cache::RedisCache, type: :cache do
       cache.cache_command_result(command_hash, { success: true })
     end
 
-    it 'removes all cache entries' do
+    it 'removes robot state cache entries' do
       expect(cache.get_robot_state(robot_id)).not_to be_nil
-      expect(cache.get_table_state(table_id)).not_to be_nil
-      expect(cache.get_cached_result(command_hash)).not_to be_nil
-
       cache.clear_all_cache
-
       expect(cache.get_robot_state(robot_id)).to be_nil
+    end
+
+    it 'removes table state cache entries' do
+      expect(cache.get_table_state(table_id)).not_to be_nil
+      cache.clear_all_cache
       expect(cache.get_table_state(table_id)).to be_nil
+    end
+
+    it 'removes command result cache entries' do
+      expect(cache.get_cached_result(command_hash)).not_to be_nil
+      cache.clear_all_cache
       expect(cache.get_cached_result(command_hash)).to be_nil
     end
   end
