@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Main application class that orchestrates the robot simulation
   class Application
     attr_reader :robot, :processor, :input_source, :output_destination
 
@@ -22,7 +21,6 @@ module RobotChallenge
       @processor = processor || create_processor(method(:output_handler), command_parser, command_dispatcher)
     end
 
-    # Set a custom output handler for testing
     def set_output_handler(handler)
       @processor = create_processor(handler)
     end
@@ -31,14 +29,11 @@ module RobotChallenge
       @input_source = InputSourceFactory.create(source)
     end
 
-    # Set a custom output formatter for testing
     def set_output_formatter(formatter)
       @output_formatter = formatter
-      # Recreate processor with new output formatter
       @processor = create_processor(method(:output_handler))
     end
 
-    # Run the application
     def run
       display_welcome_message
 
@@ -56,22 +51,18 @@ module RobotChallenge
       exit(1)
     end
 
-    # Process a single command string
     def process_command(command_string)
       processor.process_command_string(command_string)
     end
 
-    # Process multiple command strings
     def process_commands(command_strings)
       processor.process_command_strings(command_strings)
     end
 
-    # Register a new command type
     def register_command(name, command_class)
       processor.register_command(name, command_class)
     end
 
-    # Get available commands
     def available_commands
       processor.available_commands
     end
@@ -79,7 +70,6 @@ module RobotChallenge
     private
 
     def create_processor(output_handler, command_parser = nil, command_dispatcher = nil)
-      # Create dispatcher with output formatter if not provided
       dispatcher = command_dispatcher || CommandDispatcher.new(@robot, output_formatter: @output_formatter,
                                                                        logger: @logger)
 
@@ -102,8 +92,6 @@ module RobotChallenge
     end
 
     def run_batch_mode
-      # Use streaming to process large files efficiently
-      # This prevents loading entire file into memory
       input_source.each_line do |line|
         command_string = line.chomp
         processor.process_command_string(command_string)
@@ -117,7 +105,7 @@ module RobotChallenge
     def display_welcome_message
       return unless input_source.tty?
 
-      message = @output_formatter.format_welcome_message(@table, Direction.valid_directions)
+      message = @output_formatter.format_welcome_message
       output_destination.puts message if message
     end
 
