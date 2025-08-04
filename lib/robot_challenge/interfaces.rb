@@ -22,11 +22,11 @@ module RobotChallenge
 
   # Interface for command dispatching
   module CommandDispatcherInterface
-    def dispatch(command, &block)
+    def dispatch(command, &)
       raise NotImplementedError, "#{self.class} must implement #dispatch"
     end
 
-    def dispatch_commands(commands, &block)
+    def dispatch_commands(commands, &)
       raise NotImplementedError, "#{self.class} must implement #dispatch_commands"
     end
   end

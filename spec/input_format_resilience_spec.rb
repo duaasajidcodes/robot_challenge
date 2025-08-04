@@ -151,7 +151,13 @@ RSpec.describe 'Input Format Resilience' do
 
   def capture_output
     output = []
-    app.set_output_handler(->(message) { output << message })
+    output_handler = lambda do |message|
+      if message
+        formatted_message = app.instance_variable_get(:@output_formatter).format(message)
+        output << formatted_message if formatted_message
+      end
+    end
+    app.set_output_handler(output_handler)
     yield
     output.join("\n")
   end

@@ -53,18 +53,18 @@ module RobotChallenge
 
   # Logger factory for creating appropriate loggers
   class LoggerFactory
-    def self.create(type = nil, **options)
+    def self.create(type = nil, **)
       case type&.to_s&.downcase
       when 'null', 'none'
         NullLogger.new
       when 'simple', 'stdout'
-        SimpleLogger.new(**options)
+        SimpleLogger.new(**)
       else
         # Default based on environment
         if ENV['RACK_ENV'] == 'test' || ENV['ROBOT_ENV'] == 'test'
           NullLogger.new
         else
-          SimpleLogger.new(**options)
+          SimpleLogger.new(**)
         end
       end
     end

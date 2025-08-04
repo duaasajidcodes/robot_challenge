@@ -51,6 +51,8 @@ module RobotChallenge
         yield
       rescue RobotNotPlacedError => e
         error_result(e.message, :robot_not_placed)
+      rescue InvalidPositionError => e
+        error_result(e.message, :invalid_placement)
       end
     end
   end

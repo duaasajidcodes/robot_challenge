@@ -18,11 +18,12 @@ module RobotChallenge
       def create_from_string(command_string)
         return nil if command_string.nil? || command_string.strip.empty?
 
-        command_string = command_string.strip.upcase
+        original_string = command_string.strip
+        command_string = original_string.upcase
         parser = find_parser_for_command(command_string)
 
         if parser
-          parsed_params = parser.parse(command_string)
+          parsed_params = parser.parse(original_string)
           return nil unless parsed_params
 
           create_command_from_params(command_string.split.first, parsed_params)
@@ -59,7 +60,12 @@ module RobotChallenge
         when 'PLACE'
           registry.create_command('PLACE', x: params[:x], y: params[:y], direction: params[:direction])
         else
-          registry.create_command(command_name, **params)
+          # For simple commands, don't pass empty parameters
+          if params.empty?
+            registry.create_command(command_name)
+          else
+            registry.create_command(command_name, **params)
+          end
         end
       end
 
@@ -71,11 +77,6 @@ module RobotChallenge
       def register_default_parsers
         # Register PLACE command parser (most flexible)
         register_parser(PlaceCommandParser.new)
-
-        # Register flexible parsers for simple commands
-        %w[MOVE LEFT RIGHT REPORT].each do |command_name|
-          register_parser(FlexibleCommandParser.new(command_name))
-        end
       end
     end
   end

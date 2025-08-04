@@ -30,6 +30,17 @@ module RobotChallenge
   class OutputFormatter
     include OutputFormatterHelpers
 
+    def format(message)
+      # Default implementation - delegate to specific format methods
+      if message.is_a?(RobotChallenge::Robot)
+        format_report(message)
+      elsif message.is_a?(String)
+        message
+      else
+        message.to_s
+      end
+    end
+
     def format_report(robot)
       raise NotImplementedError, "#{self.class} must implement #format_report"
     end

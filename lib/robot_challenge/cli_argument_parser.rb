@@ -81,7 +81,7 @@ module RobotChallenge
     def help_flag_not_height?
       h_index = @argv.index('-h')
       return true if h_index.nil?
-      
+
       # If -h is followed by a number, it's likely --height
       next_arg = @argv[h_index + 1]
       next_arg.nil? || !next_arg.match?(/\A\d+\z/)

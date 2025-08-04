@@ -1,66 +1,85 @@
 # frozen_string_literal: true
 
+require_relative 'robot'
+require_relative 'table'
+require_relative 'command_processor'
+require_relative 'input_source'
+require_relative 'output_formatter'
+require_relative 'config'
+
 module RobotChallenge
   class Application
-    attr_reader :robot, :processor, :input_source, :output_destination
+    attr_accessor :output_formatter
+    attr_reader :robot, :table, :processor, :input_source, :output_destination
+    attr_writer :output_handler
 
     def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout, config: nil,
                    output_formatter: nil, processor: nil, robot: nil, table: nil, logger: nil,
                    command_parser: nil, command_dispatcher: nil)
       @config = config || Config.for_environment
-
       table_width ||= @config.table_width
       table_height ||= @config.table_height
-
       @table = table || Table.new(table_width, table_height)
       @robot = robot || processor&.robot || Robot.new(@table)
       @input_source = InputSourceFactory.create(input_source)
       @output_destination = output_destination
       @output_formatter = output_formatter || OutputFormatterFactory.from_environment
       @logger = logger || LoggerFactory.from_environment
-      @processor = processor || create_processor(method(:output_handler), command_parser, command_dispatcher)
+      @processor = processor || create_processor(output_handler, command_parser, command_dispatcher)
     end
 
-    def set_output_handler(handler)
-      @processor = create_processor(handler)
+    def input_source=(source)
+      @input_source = InputSourceFactory.create(source)
     end
 
     def set_input_source(source)
       @input_source = InputSourceFactory.create(source)
     end
 
+    def set_output_handler(handler)
+      @output_handler = handler
+      processor.output_handler = handler if processor.respond_to?(:output_handler=)
+    end
+
     def set_output_formatter(formatter)
       @output_formatter = formatter
-      @processor = create_processor(method(:output_handler))
+      # Update the processor's output handler to use the new formatter
+      processor.output_handler = method(:default_output_handler) if processor.respond_to?(:output_handler=)
+      # Update the dispatcher's formatter
+      return unless processor.dispatcher.respond_to?(:output_formatter=)
+
+      processor.dispatcher.output_formatter = formatter
     end
 
     def run
       display_welcome_message
 
-      if input_source.tty?
+      # Check if input source is interactive
+      if input_source.respond_to?(:tty?) && input_source.tty?
         run_interactive_mode
       else
         run_batch_mode
       end
+    end
 
-      display_goodbye_message
-    rescue Interrupt
-      output_destination.puts "\nGoodbye!"
-    rescue StandardError => e
-      output_destination.puts "An error occurred: #{e.message}"
-      exit(1)
+    def run_batch_mode
+      input_source.each_line do |line|
+        process_command(line.strip)
+      end
     end
 
     def process_command(command_string)
+      return if command_string.nil? || command_string.strip.empty?
+
       processor.process_command_string(command_string)
     end
 
-    def process_commands(command_strings)
-      processor.process_command_strings(command_strings)
+    def process_commands(commands)
+      commands.each { |command| process_command(command) }
     end
 
-    def register_command(name, command_class)
-      processor.register_command(name, command_class)
+    def register_command(command_name, command_class)
+      processor.register_command(command_name, command_class)
     end
 
     def available_commands
@@ -69,51 +88,39 @@ module RobotChallenge
 
     private
 
-    def create_processor(output_handler, command_parser = nil, command_dispatcher = nil)
-      dispatcher = command_dispatcher || CommandDispatcher.new(@robot, output_formatter: @output_formatter,
-                                                                       logger: @logger)
-
-      CommandProcessor.new(@robot,
-                           output_handler: output_handler,
-                           parser: command_parser,
-                           dispatcher: dispatcher,
-                           logger: @logger)
+    def display_welcome_message
+      output_handler.call('Welcome to Robot Challenge!')
+      output_handler.call('Commands: PLACE X,Y,DIRECTION, MOVE, LEFT, RIGHT, REPORT')
+      output_handler.call('Type your commands:')
     end
 
     def run_interactive_mode
-      output_destination.puts 'Interactive mode - enter commands (Ctrl-C to exit):'
-      output_destination.print '> '
+      loop do
+        output_handler.call('> ')
+        command = input_source.gets&.strip
+        break if command.nil? || command.empty?
 
-      input_source.each_line do |line|
-        command_string = line.chomp
-        processor.process_command_string(command_string)
-        output_destination.print '> '
+        process_command(command)
       end
     end
 
-    def run_batch_mode
-      input_source.each_line do |line|
-        command_string = line.chomp
-        processor.process_command_string(command_string)
-      end
+    def create_processor(output_handler, command_parser, command_dispatcher)
+      CommandProcessor.new(
+        robot,
+        output_handler: output_handler,
+        parser: command_parser,
+        dispatcher: command_dispatcher,
+        logger: @logger
+      )
     end
 
-    def output_handler(message)
-      output_destination.puts message
+    def output_handler
+      @output_handler ||= method(:default_output_handler)
     end
 
-    def display_welcome_message
-      return unless input_source.tty?
-
-      message = @output_formatter.format_welcome_message
-      output_destination.puts message if message
-    end
-
-    def display_goodbye_message
-      return unless input_source.tty?
-
-      message = @output_formatter.format_goodbye_message
-      output_destination.puts message if message
+    def default_output_handler(message)
+      formatted_message = output_formatter.format(message)
+      output_destination.puts(formatted_message)
     end
   end
 end

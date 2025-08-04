@@ -4,7 +4,8 @@ module RobotChallenge
   # Coordinates command parsing and dispatching
   # Follows Single Responsibility Principle by delegating to specialized services
   class CommandProcessor
-    attr_reader :robot, :output_handler, :parser, :dispatcher
+    attr_accessor :output_handler
+    attr_reader :robot, :parser, :dispatcher
 
     # Backward compatibility: expose command_factory through parser
     def command_factory

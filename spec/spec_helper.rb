@@ -6,10 +6,10 @@ if ENV['COVERAGE']
   SimpleCov.start do
     add_filter '/spec/'
     add_filter '/vendor/'
-    
+
     # Set coverage thresholds based on environment
     if ENV['CI']
-      minimum_coverage 85  # Slightly lower for CI stability
+      minimum_coverage 85 # Slightly lower for CI stability
     else
       minimum_coverage 90
       refuse_coverage_drop

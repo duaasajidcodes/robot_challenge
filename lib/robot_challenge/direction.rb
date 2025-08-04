@@ -1,25 +1,15 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Value object representing a direction with rotation capabilities
+  # Represents a direction the robot can face
   class Direction
     VALID_DIRECTIONS = %w[NORTH EAST SOUTH WEST].freeze
-    DIRECTION_DELTAS = {
-      'NORTH' => [0, 1],
-      'EAST' => [1, 0],
-      'SOUTH' => [0, -1],
-      'WEST' => [-1, 0]
-    }.freeze
 
     attr_reader :name
 
     def initialize(name)
-      normalized_name = name.to_s.upcase
-      unless VALID_DIRECTIONS.include?(normalized_name)
-        raise InvalidDirectionError, "Invalid direction: #{name}. Must be one of #{VALID_DIRECTIONS.join(', ')}"
-      end
-
-      @name = normalized_name
+      @name = name.to_s.upcase
+      validate_direction!
     end
 
     def ==(other)
@@ -40,27 +30,50 @@ module RobotChallenge
       name
     end
 
-    def inspect
-      "#<Direction:#{object_id} name=#{name}>"
+    def valid?
+      VALID_DIRECTIONS.include?(name)
     end
 
-    # Rotate 90 degrees counter-clockwise (left)
     def turn_left
-      current_index = VALID_DIRECTIONS.index(name)
-      new_index = (current_index - 1) % VALID_DIRECTIONS.length
-      Direction.new(VALID_DIRECTIONS[new_index])
+      case name
+      when 'NORTH' then Direction.new('WEST')
+      when 'WEST' then Direction.new('SOUTH')
+      when 'SOUTH' then Direction.new('EAST')
+      when 'EAST' then Direction.new('NORTH')
+      else
+        raise InvalidDirectionError, "Cannot turn left from invalid direction: #{name}"
+      end
     end
 
-    # Rotate 90 degrees clockwise (right)
     def turn_right
-      current_index = VALID_DIRECTIONS.index(name)
-      new_index = (current_index + 1) % VALID_DIRECTIONS.length
-      Direction.new(VALID_DIRECTIONS[new_index])
+      case name
+      when 'NORTH' then Direction.new('EAST')
+      when 'EAST' then Direction.new('SOUTH')
+      when 'SOUTH' then Direction.new('WEST')
+      when 'WEST' then Direction.new('NORTH')
+      else
+        raise InvalidDirectionError, "Cannot turn right from invalid direction: #{name}"
+      end
     end
 
-    # Get the movement deltas for this direction
+    def delta_x
+      case name
+      when 'EAST' then 1
+      when 'WEST' then -1
+      else 0
+      end
+    end
+
+    def delta_y
+      case name
+      when 'NORTH' then 1
+      when 'SOUTH' then -1
+      else 0
+      end
+    end
+
     def delta
-      DIRECTION_DELTAS[name]
+      [delta_x, delta_y]
     end
 
     # Class methods for creating common directions
@@ -84,6 +97,14 @@ module RobotChallenge
       def valid_directions
         VALID_DIRECTIONS.dup
       end
+    end
+
+    private
+
+    def validate_direction!
+      return if VALID_DIRECTIONS.include?(@name)
+
+      raise InvalidDirectionError, "Invalid direction: #{@name}. Must be one of #{VALID_DIRECTIONS.join(', ')}"
     end
   end
 end

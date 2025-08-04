@@ -13,7 +13,7 @@ module RobotChallenge
         @redis = Redis.new(url: redis_url || ENV['REDIS_URL'] || 'redis://localhost:6379')
         @cache_ttl = cache_ttl
         @namespace = namespace
-      rescue Redis::BaseError => e
+      rescue Redis::BaseError
         # Fallback to mock Redis if Redis is not available
         @redis = create_mock_redis
         @cache_ttl = cache_ttl
@@ -24,100 +24,69 @@ module RobotChallenge
       def cache_robot_state(robot_id, state)
         key = build_key("robot:#{robot_id}:state")
         @redis.setex(key, @cache_ttl, state.to_json)
-        log_cache_operation('cache_robot_state', key, state)
-      rescue Redis::BaseError => e
-        log_cache_error('cache_robot_state', key, e)
+        log_cache_operation('cache_robot_state', key, "Cached robot state for #{robot_id}")
       end
 
       # Get cached robot state
-      def get_robot_state(robot_id)
+      def robot_state(robot_id)
         key = build_key("robot:#{robot_id}:state")
         data = @redis.get(key)
-        if data
-          log_cache_operation('get_robot_state', key, 'HIT')
-          JSON.parse(data, symbolize_names: true)
-        else
-          log_cache_operation('get_robot_state', key, 'MISS')
-          nil
-        end
-      rescue JSON::ParserError, Redis::BaseError => e
-        log_cache_error('get_robot_state', key, e)
+        return nil unless data
+
+        JSON.parse(data, symbolize_names: true)
+      rescue JSON::ParserError
         nil
+      end
+
+      # Alias for robot_state
+      def get_robot_state(robot_id)
+        robot_state(robot_id)
       end
 
       # Cache command result
-      def cache_command_result(command_hash, result)
-        key = build_key("command:#{command_hash}")
+      def set_command_result(command_key, result)
+        key = build_key("command:#{command_key}")
         @redis.setex(key, @cache_ttl, result.to_json)
-        log_cache_operation('cache_command_result', key, result)
-      rescue Redis::BaseError => e
-        log_cache_error('cache_command_result', key, e)
+        log_cache_operation('set_command_result', key, 'Cached command result')
       end
 
       # Get cached command result
-      def get_cached_result(command_hash)
-        key = build_key("command:#{command_hash}")
+      def command_result(command_key)
+        key = build_key("command:#{command_key}")
         data = @redis.get(key)
-        if data
-          log_cache_operation('get_cached_result', key, 'HIT')
-          JSON.parse(data, symbolize_names: true)
-        else
-          log_cache_operation('get_cached_result', key, 'MISS')
-          nil
-        end
-      rescue JSON::ParserError, Redis::BaseError => e
-        log_cache_error('get_cached_result', key, e)
+        return nil unless data
+
+        JSON.parse(data, symbolize_names: true)
+      rescue JSON::ParserError
         nil
+      end
+
+      # Alias for command_result
+      def get_cached_result(command_key)
+        command_result(command_key)
       end
 
       # Cache table state
       def cache_table_state(table_id, state)
         key = build_key("table:#{table_id}:state")
         @redis.setex(key, @cache_ttl, state.to_json)
-        log_cache_operation('cache_table_state', key, state)
-      rescue Redis::BaseError => e
-        log_cache_error('cache_table_state', key, e)
+        log_cache_operation('cache_table_state', key, "Cached table state for #{table_id}")
       end
 
       # Get cached table state
-      def get_table_state(table_id)
+      def table_state(table_id)
         key = build_key("table:#{table_id}:state")
         data = @redis.get(key)
-        if data
-          log_cache_operation('get_table_state', key, 'HIT')
-          JSON.parse(data, symbolize_names: true)
-        else
-          log_cache_operation('get_table_state', key, 'MISS')
-          nil
-        end
-      rescue JSON::ParserError, Redis::BaseError => e
-        log_cache_error('get_table_state', key, e)
+        return nil unless data
+
+        JSON.parse(data, symbolize_names: true)
+      rescue JSON::ParserError
         nil
       end
 
-      # Cache command statistics
-      def cache_command_stats(stats)
-        key = build_key('stats:commands')
-        @redis.setex(key, @cache_ttl, stats.to_json)
-        log_cache_operation('cache_command_stats', key, stats)
-      rescue Redis::BaseError => e
-        log_cache_error('cache_command_stats', key, e)
-      end
-
-      # Get cached command statistics
-      def get_command_stats
-        key = build_key('stats:commands')
-        data = @redis.get(key)
-        if data
-          log_cache_operation('get_command_stats', key, 'HIT')
-          JSON.parse(data, symbolize_names: true)
-        else
-          log_cache_operation('get_command_stats', key, 'MISS')
-          nil
-        end
-      rescue JSON::ParserError, Redis::BaseError => e
-        log_cache_error('get_command_stats', key, e)
-        nil
+      # Alias for table_state
+      def get_table_state(table_id)
+        table_state(table_id)
       end
 
       # Invalidate robot cache
@@ -128,8 +97,6 @@ module RobotChallenge
 
         @redis.del(*keys)
         log_cache_operation('invalidate_robot_cache', pattern, "Deleted #{keys.length} keys")
-      rescue Redis::BaseError => e
-        log_cache_error('invalidate_robot_cache', pattern, e)
       end
 
       # Invalidate table cache
@@ -140,8 +107,16 @@ module RobotChallenge
 
         @redis.del(*keys)
         log_cache_operation('invalidate_table_cache', pattern, "Deleted #{keys.length} keys")
-      rescue Redis::BaseError => e
-        log_cache_error('invalidate_table_cache', pattern, e)
+      end
+
+      # Invalidate command cache
+      def invalidate_command_cache(command_pattern)
+        pattern = build_key("command:#{command_pattern}")
+        keys = @redis.keys(pattern)
+        return unless keys.any?
+
+        @redis.del(*keys)
+        log_cache_operation('invalidate_command_cache', pattern, "Deleted #{keys.length} keys")
       end
 
       # Clear all cache
@@ -152,156 +127,216 @@ module RobotChallenge
 
         @redis.del(*keys)
         log_cache_operation('clear_all_cache', pattern, "Deleted #{keys.length} keys")
-      rescue Redis::BaseError => e
-        log_cache_error('clear_all_cache', pattern, e)
       end
 
       # Get cache statistics
       def cache_stats
         pattern = build_key('*')
         keys = @redis.keys(pattern)
+        total_keys = keys.length
 
-        stats = {
-          total_keys: keys.length,
-          memory_usage: @redis.info['used_memory_human'],
-          hit_rate: calculate_hit_rate,
-          keys_by_type: categorize_keys(keys)
+        keys_by_type = {
+          robot: keys.count { |k| k.include?('robot:') },
+          command: keys.count { |k| k.include?('command:') },
+          table: keys.count { |k| k.include?('table:') }
         }
 
-        log_cache_operation('cache_stats', 'stats', stats)
+        stats = {
+          total_keys: total_keys,
+          memory_usage: '0B', # Default value
+          hit_rate: 0.0, # Default value
+          keys_by_type: keys_by_type,
+          robot_keys: keys_by_type[:robot],
+          command_keys: keys_by_type[:command],
+          table_keys: keys_by_type[:table],
+          cache_ttl: @cache_ttl,
+          namespace: @namespace,
+          timestamp: Time.now.iso8601
+        }
+
+        # Add Redis-specific stats if available
+        begin
+          info = @redis.info
+          stats[:redis_version] = info['redis_version']
+          stats[:used_memory] = info['used_memory_human']
+          stats[:connected_clients] = info['connected_clients']
+          stats[:memory_usage] = info['used_memory_human']
+        rescue StandardError
+          # Ignore Redis info errors
+        end
+
         stats
-      rescue Redis::BaseError => e
-        log_cache_error('cache_stats', 'stats', e)
+      end
+
+      # Health check
+      def health_check
+        @redis.ping
+        cache_stats_data = cache_stats
         {
-          total_keys: 0,
-          memory_usage: 'Unknown',
-          hit_rate: 0.0,
-          keys_by_type: {}
+          available: true,
+          connection_info: {
+            redis_version: cache_stats_data[:redis_version],
+            connected_clients: cache_stats_data[:connected_clients],
+            used_memory: cache_stats_data[:used_memory]
+          },
+          cache_stats: cache_stats_data,
+          status: 'healthy',
+          redis_available: true,
+          timestamp: Time.now.iso8601
+        }
+      rescue StandardError => e
+        {
+          available: false,
+          connection_info: { error: e.message },
+          cache_stats: { total_keys: 0, memory_usage: '0B', hit_rate: 0.0, keys_by_type: {} },
+          status: 'unhealthy',
+          redis_available: false,
+          error: e.message,
+          timestamp: Time.now.iso8601
         }
       end
 
       # Check if Redis is available
       def available?
-        @redis.ping == 'PONG'
-      rescue Redis::BaseError
+        @redis.ping
+        true
+      rescue StandardError
         false
       end
 
-      # Health check
-      def health_check
-        {
-          available: available?,
-          connection_info: connection_info,
-          cache_stats: cache_stats
+      # Get command statistics
+      def command_stats
+        pattern = build_key('command:*')
+        keys = @redis.keys(pattern)
+        total_commands = keys.length
+
+        stats = {
+          total_commands: total_commands,
+          cached_commands: total_commands,
+          cache_hits: 0, # This would need to be tracked separately
+          cache_misses: 0, # This would need to be tracked separately
+          average_execution_time: 0.0, # This would need to be calculated from cached data
+          last_updated: Time.now.iso8601
         }
-      rescue Redis::BaseError => e
-        {
-          available: false,
-          error: e.message,
-          connection_info: { error: 'Unable to connect' },
-          cache_stats: { error: 'Unable to get stats' }
-        }
+
+        # Try to get more detailed stats from cached data
+        begin
+          execution_times = []
+          keys.each do |key|
+            data = @redis.get(key)
+            next unless data
+
+            parsed_data = JSON.parse(data, symbolize_names: true)
+            execution_times << parsed_data[:execution_time] if parsed_data[:execution_time]
+          end
+
+          stats[:average_execution_time] = execution_times.sum / execution_times.length if execution_times.any?
+        rescue StandardError
+          # Ignore parsing errors
+        end
+
+        stats
+      end
+
+      # Cache command statistics
+      def cache_command_stats(stats)
+        key = build_key('stats:commands')
+        @redis.setex(key, @cache_ttl, stats.to_json)
+      end
+
+      # Get cached command statistics
+      def cached_command_stats
+        key = build_key('stats:commands')
+        data = @redis.get(key)
+        return nil unless data
+
+        JSON.parse(data, symbolize_names: true)
+      rescue JSON::ParserError
+        nil
+      end
+
+      # Cache command result with detailed information
+      def cache_command_result(command_hash, cache_data)
+        key = build_key("command:#{command_hash}")
+        @redis.setex(key, @cache_ttl, cache_data.to_json)
+        log_cache_operation('cache_command_result', key, 'Cached command result')
+      end
+
+      # Get cached result
+      def cached_result(command_hash)
+        key = build_key("command:#{command_hash}")
+        data = @redis.get(key)
+        return nil unless data
+
+        JSON.parse(data, symbolize_names: true)
+      rescue JSON::ParserError
+        nil
+      end
+
+      # Invalidate command cache by hash
+      def invalidate_command_cache_by_hash(command_hash)
+        key = build_key("command:#{command_hash}")
+        @redis.del(key)
+        log_cache_operation('invalidate_command_cache_by_hash', key, 'Deleted command cache')
       end
 
       private
 
-      def build_key(key)
-        "#{@namespace}:#{key}"
+      def build_key(key_suffix)
+        "#{@namespace}:#{key_suffix}"
       end
 
-      def log_cache_operation(operation, key, data)
+      def log_cache_operation(operation, key, message)
         return unless ENV['ROBOT_CACHE_DEBUG']
 
-        puts "[CACHE] #{operation}: #{key} - #{data.class}"
-      end
-
-      def log_cache_error(operation, key, error)
-        puts "[CACHE_ERROR] #{operation}: #{key} - #{error.message}"
-      end
-
-      def calculate_hit_rate
-        total_operations = @redis.get(build_key('stats:total_operations')).to_i
-        total_hits = @redis.get(build_key('stats:total_hits')).to_i
-
-        return 0.0 if total_operations.zero?
-
-        (total_hits.to_f / total_operations * 100).round(2)
-      rescue Redis::BaseError
-        0.0
-      end
-
-      def categorize_keys(keys)
-        categories = Hash.new(0)
-        keys.each do |key|
-          if key.include?(':robot:')
-            categories[:robot] += 1
-          elsif key.include?(':table:')
-            categories[:table] += 1
-          elsif key.include?(':command:')
-            categories[:command] += 1
-          elsif key.include?(':stats:')
-            categories[:stats] += 1
-          else
-            categories[:other] += 1
-          end
-        end
-        categories
-      end
-
-      def connection_info
-        {
-          host: @redis.client.host,
-          port: @redis.client.port,
-          db: @redis.client.db,
-          timeout: @redis.client.timeout
-        }
-      rescue StandardError
-        { error: 'Unable to get connection info' }
+        puts "[REDIS_CACHE] #{operation}: #{key} - #{message}"
       end
 
       def create_mock_redis
-        # Create a simple mock Redis for when Redis is not available
-        Class.new do
-          def initialize
-            @data = {}
-          end
+        # Create a simple mock Redis implementation for testing
+        mock_redis = Object.new
 
-          def setex(key, ttl, value)
-            @data[key] = { value: value, expires_at: Time.now + ttl }
-          end
+        def mock_redis.setex(key, ttl, value)
+          @mock_data ||= {}
+          @mock_data[key] = { value: value, expires_at: Time.now + ttl }
+        end
 
-          def get(key)
-            data = @data[key]
-            return nil unless data
-            return nil if data[:expires_at] < Time.now
-            data[:value]
-          end
+        def mock_redis.get(key)
+          @mock_data ||= {}
+          data = @mock_data[key]
+          return nil unless data && data[:expires_at] > Time.now
 
-          def del(*keys)
-            keys.count { |key| @data.delete(key) }
-          end
+          data[:value]
+        end
 
-          def keys(pattern)
-            @data.keys.select { |key| File.fnmatch(pattern, key) }
+        def mock_redis.del(*keys)
+          @mock_data ||= {}
+          deleted_count = 0
+          keys.each do |key|
+            deleted_count += 1 if @mock_data.delete(key)
           end
+          deleted_count
+        end
 
-          def info
-            { 'used_memory_human' => '0B' }
-          end
+        def mock_redis.keys(pattern)
+          @mock_data ||= {}
+          pattern_regex = pattern.gsub('*', '.*')
+          @mock_data.keys.grep(pattern_regex)
+        end
 
-          def ping
-            'PONG'
-          end
+        def mock_redis.ping
+          'PONG'
+        end
 
-          def client
-            OpenStruct.new(
-              host: 'localhost',
-              port: 6379,
-              db: 0,
-              timeout: 5
-            )
-          end
-        end.new
+        def mock_redis.info
+          {
+            'redis_version' => 'mock',
+            'used_memory_human' => '0B',
+            'connected_clients' => '1'
+          }
+        end
+
+        mock_redis
       end
     end
   end

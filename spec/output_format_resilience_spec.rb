@@ -308,7 +308,9 @@ RSpec.describe 'Output Format Resilience' do
   def capture_output(app)
     output = []
     # Create a custom output handler that captures messages
-    output_handler = ->(message) { output << message if message }
+    output_handler = lambda do |message|
+      output << message if message
+    end
     app.set_output_handler(output_handler)
     yield
     output.join("\n")

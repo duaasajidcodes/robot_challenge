@@ -1,158 +1,110 @@
 # frozen_string_literal: true
 
-require_relative 'redis_cache'
+require_relative '../command_processor'
 require 'digest'
 
 module RobotChallenge
   module Cache
-    # Cached command processor that adds Redis caching to command execution
+    # Decorator that adds caching to CommandProcessor
     class CachedCommandProcessor
       attr_reader :processor, :cache
 
-      def initialize(processor, cache: nil)
+      def initialize(processor, cache = nil)
         @processor = processor
         @cache = cache || RedisCache.new
       end
 
-      # Process command with caching
       def process_command_string(command_string)
-        command_hash = generate_command_hash(command_string)
+        cache_key = build_cache_key(command_string)
+        cached_result = cache.get_command_result(cache_key)
 
-        # Try to get cached result first
-        cached_result = @cache.get_cached_result(command_hash)
         if cached_result
-          log_cache_hit(command_string, cached_result)
+          log_cache_hit(command_string)
           return cached_result
         end
 
-        # Execute command and cache result
-        result = @processor.process_command_string(command_string)
-        cache_command_result(command_hash, command_string, result)
+        result = processor.process_command_string(command_string)
+        cache.set_command_result(cache_key, result)
+        log_cache_miss(command_string)
         result
       end
 
-      # Process command object with caching
       def process_command(command)
-        command_string = command.to_s
-        command_hash = generate_command_hash(command_string)
+        cache_key = build_cache_key(command.to_s)
+        cached_result = cache.get_command_result(cache_key)
 
-        # Try to get cached result first
-        cached_result = @cache.get_cached_result(command_hash)
         if cached_result
-          log_cache_hit(command_string, cached_result)
+          log_cache_hit(command.to_s)
           return cached_result
         end
 
-        # Execute command and cache result
-        result = @processor.process_command(command)
-        cache_command_result(command_hash, command_string, result)
+        result = processor.process_command(command)
+        cache.set_command_result(cache_key, result)
+        log_cache_miss(command.to_s)
         result
       end
 
-      # Process multiple commands with caching
-      def process_command_strings(command_strings)
-        results = []
-
-        command_strings.each do |command_string|
-          result = process_command_string(command_string)
-          results << result
-        end
-
-        results
+      def robot
+        processor.robot
       end
 
-      # Delegate other methods to the underlying processor
-      def method_missing(method_name, ...)
-        if @processor.respond_to?(method_name)
-          @processor.send(method_name, ...)
+      def robot=(new_robot)
+        processor.robot = new_robot
+        invalidate_robot_cache
+      end
+
+      def available_commands
+        processor.available_commands
+      end
+
+      def register_command(name, command_class)
+        processor.register_command(name, command_class)
+      end
+
+      def command_factory
+        processor.command_factory
+      end
+
+      private
+
+      def build_cache_key(command_string)
+        robot_state = robot_state_for_hash
+        "command:#{Digest::MD5.hexdigest(command_string)}:#{robot_state}"
+      end
+
+      def robot_state_for_hash
+        return 'unplaced' unless robot.placed?
+
+        position = robot.position
+        direction = robot.direction
+        "#{position.x},#{position.y},#{direction.name}"
+      end
+
+      def invalidate_robot_cache
+        robot_id = robot.object_id
+        cache.invalidate_robot_cache(robot_id)
+      end
+
+      def log_cache_hit(command_string)
+        # In a real application, you might want to log this
+        # logger.debug("Cache hit for command: #{command_string}")
+      end
+
+      def log_cache_miss(command_string)
+        # In a real application, you might want to log this
+        # logger.debug("Cache miss for command: #{command_string}")
+      end
+
+      def method_missing(method_name, *, &)
+        if processor.respond_to?(method_name)
+          processor.send(method_name, *, &)
         else
           super
         end
       end
 
       def respond_to_missing?(method_name, include_private = false)
-        @processor.respond_to?(method_name, include_private) || super
-      end
-
-      # Cache management methods
-      def invalidate_command_cache(command_hash)
-        @cache.invalidate_command_cache(command_hash)
-      end
-
-      def clear_command_cache
-        @cache.clear_all_cache
-      end
-
-      def cache_stats
-        @cache.cache_stats
-      end
-
-      def health_check
-        @cache.health_check
-      end
-
-      # Get command execution statistics
-      def command_stats
-        stats = @cache.get_command_stats || {
-          total_commands: 0,
-          cached_commands: 0,
-          cache_hits: 0,
-          cache_misses: 0,
-          average_execution_time: 0.0
-        }
-
-        # Update stats
-        stats[:last_updated] = Time.now.iso8601
-        @cache.cache_command_stats(stats)
-
-        stats
-      end
-
-      private
-
-      def generate_command_hash(command_string)
-        # Create a hash based on command string and robot state
-        robot_state = get_robot_state_for_hash
-        data_to_hash = "#{command_string}:#{robot_state}"
-        Digest::SHA256.hexdigest(data_to_hash)
-      end
-
-      def get_robot_state_for_hash
-        robot = @processor.robot
-        return 'unplaced' unless robot.placed?
-
-        "#{robot.position.x},#{robot.position.y},#{robot.direction.name}"
-      end
-
-      def cache_command_result(command_hash, command_string, result)
-        cache_data = {
-          command: command_string,
-          result: result,
-          robot_state: get_robot_state_for_hash,
-          timestamp: Time.now.iso8601,
-          execution_time: result[:execution_time] || 0.0
-        }
-
-        @cache.cache_command_result(command_hash, cache_data)
-        log_cache_miss(command_string, cache_data)
-      rescue StandardError => e
-        log_cache_error('cache_command_result', command_string, e)
-      end
-
-      def log_cache_hit(command_string, _cached_result)
-        return unless ENV['ROBOT_CACHE_DEBUG']
-
-        puts "[CACHE_HIT] Command: #{command_string} - Using cached result"
-      end
-
-      def log_cache_miss(command_string, _cache_data)
-        return unless ENV['ROBOT_CACHE_DEBUG']
-
-        puts "[CACHE_MISS] Command: #{command_string} - Cached new result"
-      end
-
-      def log_cache_error(operation, command_string, error)
-        puts "[CACHED_COMMAND_PROCESSOR_ERROR] #{operation}: #{command_string} - #{error.message}"
+        processor.respond_to?(method_name, include_private) || super
       end
     end
   end

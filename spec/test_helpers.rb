@@ -1,134 +1,131 @@
 # frozen_string_literal: true
 
+require 'tempfile'
+require 'stringio'
+
 # Common test helpers to reduce repetition (DRY principle)
 module TestHelpers
-  # Common test data
-  module TestData
-    VALID_COMMANDS = [
-      'PLACE 0,0,NORTH',
-      'MOVE',
-      'LEFT',
-      'RIGHT',
-      'REPORT'
-    ].freeze
-
-    INVALID_COMMANDS = [
-      'INVALID',
-      'PLACE invalid',
-      'PLACE 0,0,INVALID',
-      '',
-      '   ',
-      nil
-    ].freeze
-
-    MIXED_COMMANDS = [
-      'PLACE 0,0,NORTH',
-      'MOVE',
-      'INVALID',
-      'LEFT',
-      'REPORT'
-    ].freeze
-
-    # Common test scenarios
-    SCENARIOS = {
-      basic_movement: ['PLACE 0,0,NORTH', 'MOVE', 'REPORT'],
-      rotation: ['PLACE 0,0,NORTH', 'LEFT', 'REPORT'],
-      boundary_test: ['PLACE 0,0,NORTH', 'MOVE', 'MOVE', 'MOVE', 'MOVE', 'MOVE', 'REPORT'],
-      complex_sequence: ['PLACE 1,2,EAST', 'MOVE', 'MOVE', 'LEFT', 'MOVE', 'REPORT']
-    }.freeze
+  # Create a test robot with a specific position
+  def create_test_robot_with_position(pos_x, pos_y, direction_name)
+    table = RobotChallenge::Table.new(5, 5)
+    robot = RobotChallenge::Robot.new(table)
+    position = RobotChallenge::Position.new(pos_x, pos_y)
+    direction = RobotChallenge::Direction.new(direction_name)
+    robot.place(position, direction)
+    robot
   end
 
-  # Common test assertions
-  module Assertions
-    def assert_robot_position(robot, expected_x, expected_y, expected_direction)
-      expect(robot.position.x).to eq(expected_x)
-      expect(robot.position.y).to eq(expected_y)
-      expect(robot.direction.name).to eq(expected_direction)
-    end
+  # Create a test table with custom dimensions
+  def create_test_table(width, height)
+    RobotChallenge::Table.new(width, height)
+  end
 
-    def assert_output_contains(output, expected_content)
-      expect(output).to include(expected_content)
-    end
+  # Create a test position
+  def create_test_position(x_coord, y_coord)
+    RobotChallenge::Position.new(x_coord, y_coord)
+  end
 
-    def assert_no_output(output)
-      expect(output).to be_empty
-    end
+  # Create a test direction
+  def create_test_direction(direction_name)
+    RobotChallenge::Direction.new(direction_name)
+  end
 
-    def assert_valid_json(output)
-      expect { JSON.parse(output) }.not_to raise_error
-    end
+  # Create a test command factory
+  def create_test_command_factory
+    RobotChallenge::Commands::CommandFactory.new
+  end
 
-    def assert_valid_xml(output)
-      expect(output).to include('<?xml version="1.0" encoding="UTF-8"?>')
-    end
+  # Create a test command registry
+  def create_test_command_registry
+    RobotChallenge::Commands::CommandRegistry.new
+  end
 
-    def assert_valid_csv(output)
-      expect(output).to include(',')
-      expect(output).to include("\n")
+  # Create a test command processor
+  def create_test_command_processor(robot = nil)
+    robot ||= create_test_robot_with_position(0, 0, 'NORTH')
+    RobotChallenge::CommandProcessor.new(robot)
+  end
+
+  # Create a test application
+  def create_test_application
+    RobotChallenge::Application.new
+  end
+
+  # Create a test input source
+  def create_input_source(source_type, data = nil)
+    case source_type
+    when :file
+      temp_file = Tempfile.new(['test', '.txt'])
+      temp_file.write(data || "PLACE 0,0,NORTH\nMOVE\nREPORT")
+      temp_file.close
+      RobotChallenge::InputSourceFactory.create(temp_file.path)
+    when :string
+      RobotChallenge::InputSourceFactory.create(data || "PLACE 0,0,NORTH\nMOVE\nREPORT")
+    when :array
+      RobotChallenge::InputSourceFactory.create(data || ['PLACE 0,0,NORTH', 'MOVE', 'REPORT'])
+    when :stdin
+      RobotChallenge::InputSourceFactory.create(StringIO.new(data || "PLACE 0,0,NORTH\nMOVE\nREPORT"))
+    else
+      raise ArgumentError, "Unknown source type: #{source_type}"
     end
   end
 
-  # Common test setup
-  module Setup
-    def create_test_robot_with_position(x, y, direction)
-      robot = create_test_robot
-      robot.place(RobotChallenge::Position.new(x, y), RobotChallenge::Direction.new(direction))
-      robot
+  # Create a test output formatter
+  def create_test_output_formatter(format_type = :text)
+    RobotChallenge::OutputFormatterFactory.create(format_type)
+  end
+
+  # Create a test logger
+  def create_test_logger(logger_type = :simple)
+    case logger_type
+    when :simple
+      RobotChallenge::SimpleLogger.new
+    when :null
+      RobotChallenge::NullLogger.new
+    else
+      raise ArgumentError, "Unknown logger type: #{logger_type}"
+    end
+  end
+
+  # Create a test cache
+  def create_test_cache
+    RobotChallenge::Cache::RedisCache.new
+  end
+
+  # Create a test dependency container
+  def create_test_dependency_container
+    RobotChallenge::DependencyContainer.new
+  end
+
+  # Helper method to run commands and capture output
+  def run_commands_and_capture_output(commands, application = nil)
+    application ||= create_test_application
+    output = StringIO.new
+    application.instance_variable_set(:@output_destination, output)
+
+    if commands.is_a?(String)
+      commands.lines.each { |line| application.process_command(line.strip) }
+    elsif commands.is_a?(Array)
+      commands.each { |command| application.process_command(command) }
     end
 
-    def create_test_application_with_config(config_overrides = {})
-      test_config = RobotChallenge::Config.for_environment('test')
-      config_overrides.each { |key, value| test_config.instance_variable_set("@#{key}", value) }
-      RobotChallenge::Application.new(config: test_config)
-    end
+    output.string
+  end
 
-    def capture_output(app)
-      output = []
-      output_handler = ->(message) { output << message if message }
-      app.set_output_handler(output_handler)
-      yield
-      output.join("\n")
-    end
-
-    def run_commands_and_capture_output(app, commands)
-      capture_output(app) do
-        app.process_commands(commands)
+  # Helper method to create a custom command class
+  def create_custom_command_class(name, &block)
+    Class.new(RobotChallenge::Commands::Command) do
+      define_method(:execute) do |_robot|
+        instance_eval(&block) if block_given?
+        RobotChallenge::Commands::Command.new.success_result
       end
-    end
-  end
 
-  # Common test factories
-  module Factories
-    def create_formatter(format_type)
-      RobotChallenge::OutputFormatterFactory.create(format_type)
-    end
-
-    def create_input_source(source_type, data = nil)
-      case source_type
-      when :file
-        RobotChallenge::InputSourceFactory.from_file_path(data || 'test_data/example_1.txt')
-      when :string
-        RobotChallenge::InputSourceFactory.from_string(data || 'PLACE 0,0,NORTH')
-      when :array
-        RobotChallenge::InputSourceFactory.from_array(data || ['PLACE 0,0,NORTH', 'MOVE'])
-      when :stdin
-        RobotChallenge::InputSourceFactory.from_stdin
-      else
-        raise ArgumentError, "Unknown source type: #{source_type}"
-      end
-    end
-
-    def create_command_factory_with_custom_commands
-      RobotChallenge::Commands::CommandFactory.new
-      # Add any custom commands here if needed
+      define_singleton_method(:name) { name }
     end
   end
 end
 
 # Include all test helpers
 RSpec.configure do |config|
-  config.include TestHelpers::TestData
-  config.include TestHelpers::Assertions
-  config.include TestHelpers::Setup
-  config.include TestHelpers::Factories
+  config.include TestHelpers
 end

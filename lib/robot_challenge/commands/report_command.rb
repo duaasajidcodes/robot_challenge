@@ -6,10 +6,12 @@ module RobotChallenge
   module Commands
     # Command to report robot's current position and direction
     class ReportCommand < Command
+      def initialize(*); end
+
       def execute(robot)
         handle_robot_placement_error do
-          report = robot.report
-          output_result(report)
+          robot.report
+          output_result(robot)
         end
       end
     end

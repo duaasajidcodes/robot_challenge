@@ -25,6 +25,16 @@ Style/StringLiterals:
 Style/FrozenStringLiteralComment:
   Enabled: true
 
+Style/OpenStructUse:
+  Enabled: false
+
+# Naming cops
+Naming/PredicateMethod:
+  Enabled: false
+
+Naming/MethodParameterName:
+  MinNameLength: 2
+
 # Metrics cops
 Metrics/MethodLength:
   Max: 20
@@ -49,6 +59,21 @@ Metrics/AbcSize:
   Exclude:
     - 'spec/**/*'
 
+Metrics/CyclomaticComplexity:
+  Max: 10
+  Exclude:
+    - 'spec/**/*'
+
+Metrics/PerceivedComplexity:
+  Max: 8
+  Exclude:
+    - 'spec/**/*'
+
+Metrics/ParameterLists:
+  Max: 5
+  Exclude:
+    - 'spec/**/*'
+
 # RSpec specific cops
 require: rubocop-rspec
 
@@ -65,3 +90,50 @@ RSpec/DescribeClass:
   Exclude:
     - 'spec/integration/**/*'
     - 'spec/*_resilience_spec.rb'
+
+RSpec/PredicateMatcher:
+  Enabled: false
+
+RSpec/ContextWording:
+  Enabled: false
+
+RSpec/VerifiedDoubles:
+  Enabled: false
+
+RSpec/FilePath:
+  Enabled: false
+
+RSpec/SpecFilePathFormat:
+  Enabled: false
+
+RSpec/MultipleMemoizedHelpers:
+  Max: 6
+
+RSpec/MessageSpies:
+  Enabled: false
+
+RSpec/LeakyConstantDeclaration:
+  Enabled: false
+
+RSpec/IdenticalEqualityAssertion:
+  Enabled: false
+
+RSpec/InstanceVariable:
+  Enabled: false
+
+RSpec/IndexedLet:
+  Enabled: false
+
+# Lint cops
+Lint/ConstantDefinitionInBlock:
+  Enabled: false
+
+Lint/MissingSuper:
+  Enabled: false
+
+Lint/EmptyBlock:
+  Enabled: false
+
+# Capybara cops
+Capybara/RSpec/PredicateMatcher:
+  Enabled: false

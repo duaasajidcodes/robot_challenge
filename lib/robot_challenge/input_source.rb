@@ -3,8 +3,12 @@
 module RobotChallenge
   # Abstract base class for input sources
   class InputSource
-    def each_line(&block)
+    def each_line(&)
       raise NotImplementedError, "#{self.class} must implement #each_line"
+    end
+
+    def gets
+      raise NotImplementedError, "#{self.class} must implement #gets"
     end
 
     def tty?
@@ -22,8 +26,12 @@ module RobotChallenge
       @io = io
     end
 
-    def each_line(&block)
-      @io.each_line(&block)
+    def each_line(&)
+      @io.each_line(&)
+    end
+
+    def gets
+      @io.gets
     end
 
     def tty?
@@ -35,6 +43,8 @@ module RobotChallenge
   class FileInputSource < InputSource
     def initialize(file_path)
       @file_path = file_path
+      @file = nil
+      @lines = nil
     end
 
     def each_line(&block)
@@ -46,16 +56,39 @@ module RobotChallenge
     rescue Errno::EACCES
       raise ArgumentError, "Permission denied: #{@file_path}"
     end
+
+    def gets
+      if @lines.nil?
+        @lines = File.readlines(@file_path)
+        @current_line = 0
+      end
+
+      return nil if @current_line >= @lines.length
+
+      line = @lines[@current_line]
+      @current_line += 1
+      line
+    end
   end
 
   # Input source for string input (useful for testing)
   class StringInputSource < InputSource
     def initialize(string)
       @string = string
+      @lines = string.lines
+      @current_line = 0
     end
 
-    def each_line(&block)
-      @string.each_line(&block)
+    def each_line(&)
+      @string.each_line(&)
+    end
+
+    def gets
+      return nil if @current_line >= @lines.length
+
+      line = @lines[@current_line]
+      @current_line += 1
+      line
     end
   end
 
@@ -63,10 +96,19 @@ module RobotChallenge
   class ArrayInputSource < InputSource
     def initialize(array)
       @array = array
+      @current_index = 0
     end
 
-    def each_line(&block)
-      @array.each(&block)
+    def each_line(&)
+      @array.each(&)
+    end
+
+    def gets
+      return nil if @current_index >= @array.length
+
+      line = @array[@current_index]
+      @current_index += 1
+      line.to_s
     end
   end
 
@@ -76,8 +118,12 @@ module RobotChallenge
       @socket = socket
     end
 
-    def each_line(&block)
-      @socket.each_line(&block)
+    def each_line(&)
+      @socket.each_line(&)
+    end
+
+    def gets
+      @socket.gets
     end
 
     def close

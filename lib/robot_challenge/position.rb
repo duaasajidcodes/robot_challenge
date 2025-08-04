@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Value object representing a position on the table
+  # Represents a position on the table with x and y coordinates
   class Position
     attr_reader :x, :y
 
-    def initialize(x, y)
-      @x = x.to_i
-      @y = y.to_i
+    def initialize(pos_x, pos_y)
+      @x = pos_x.to_i
+      @y = pos_y.to_i
     end
 
     def ==(other)
@@ -26,10 +26,6 @@ module RobotChallenge
 
     def to_s
       "#{x},#{y}"
-    end
-
-    def inspect
-      "#<Position:#{object_id} x=#{x}, y=#{y}>"
     end
 
     # Create a new position moved by the given deltas

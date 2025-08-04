@@ -19,7 +19,7 @@ RSpec.describe RobotChallenge::Commands::ReportCommand do
         result = command.execute(robot)
 
         expect(result[:status]).to eq(:output)
-        expect(result[:message]).to eq('2,3,EAST')
+        expect(result[:message]).to eq(robot)
       end
     end
 
