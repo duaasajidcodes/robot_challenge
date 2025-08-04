@@ -12,7 +12,7 @@ module RobotChallenge
     end
 
     def help_requested?
-      @argv.include?('--help') || @argv.include?('-h')
+      @argv.include?('--help') || (@argv.include?('-h') && help_flag_not_height?)
     end
 
     def display_help
@@ -76,6 +76,15 @@ module RobotChallenge
 
       # Check for input file as positional argument if not specified with --input
       @input_file = @argv.first if @input_file.nil? && @argv.any? && !@argv.first.start_with?('-')
+    end
+
+    def help_flag_not_height?
+      h_index = @argv.index('-h')
+      return true if h_index.nil?
+      
+      # If -h is followed by a number, it's likely --height
+      next_arg = @argv[h_index + 1]
+      next_arg.nil? || !next_arg.match?(/\A\d+\z/)
     end
   end
 end

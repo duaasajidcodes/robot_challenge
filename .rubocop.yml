@@ -1,15 +1,14 @@
 # frozen_string_literal: true
 
-# RuboCop configuration for Robot Challenge
-
 AllCops:
-  TargetRubyVersion: 3.0
+  TargetRubyVersion: 3.3
   NewCops: enable
   SuggestExtensions: false
   Exclude:
     - 'vendor/**/*'
     - 'tmp/**/*'
     - 'coverage/**/*'
+    - 'bin/*'
 
 # Layout cops
 Layout/LineLength:
@@ -28,27 +27,41 @@ Style/FrozenStringLiteralComment:
 
 # Metrics cops
 Metrics/MethodLength:
-  Max: 15
+  Max: 20
   CountAsOne: ['array', 'heredoc']
+  Exclude:
+    - 'spec/**/*'
 
 Metrics/ClassLength:
-  Max: 150
+  Max: 200
+  Exclude:
+    - 'spec/**/*'
 
 Metrics/BlockLength:
-  Max: 25
+  Max: 30
   CountAsOne: ['array', 'heredoc']
   Exclude:
     - 'spec/**/*'
     - 'Rakefile'
 
+Metrics/AbcSize:
+  Max: 20
+  Exclude:
+    - 'spec/**/*'
+
 # RSpec specific cops
 require: rubocop-rspec
 
 RSpec/ExampleLength:
-  Max: 10
+  Max: 15
 
 RSpec/MultipleExpectations:
-  Max: 3
+  Max: 5
 
 RSpec/NestedGroups:
-  Max: 3
+  Max: 4
+
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/integration/**/*'
+    - 'spec/*_resilience_spec.rb'

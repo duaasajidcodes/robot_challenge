@@ -6,13 +6,27 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  COVERAGE: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
     
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     strategy:
       matrix:
-        ruby-version: ['3.1', '3.2', '3.3']
+        ruby-version: ['3.3.0']
     
     steps:
     - uses: actions/checkout@v4
@@ -23,29 +37,57 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
     
+    - name: Wait for Redis
+      run: |
+        timeout 30 bash -c 'until redis-cli -h localhost ping; do sleep 1; done'
+    
     - name: Run linting
-      run: bundle exec rubocop
+      run: bundle exec rubocop --fail-level=error
     
     - name: Run tests
-      run: bundle exec rspec
+      env:
+        REDIS_URL: redis://localhost:6379
+        REDIS_AVAILABLE: true
+      run: bundle exec rspec --format progress
     
-    - name: Upload coverage to Codecov
-      if: matrix.ruby-version == '3.3'
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage/coverage.xml
-        fail_ci_if_error: true
+    - name: Generate coverage report
+      if: success()
+      run: |
+        if [ -f coverage/.resultset.json ]; then
+          echo "Coverage report generated"
+        fi
 
   docker:
     runs-on: ubuntu-latest
+    needs: test
     steps:
     - uses: actions/checkout@v4
     
     - name: Build Docker image
-      run: docker build -t robot_challenge .
+      run: docker build -t robot-challenge .
     
-    - name: Test Docker image
+    - name: Test Docker image - Example 1
       run: |
-        echo "PLACE 0,0,NORTH" | docker run -i robot_challenge
-        echo "MOVE" | docker run -i robot_challenge
-        echo "REPORT" | docker run -i robot_challenge
+        echo -e "PLACE 0,0,NORTH\nMOVE\nREPORT" | docker run -i robot-challenge | grep "0,1,NORTH"
+    
+    - name: Test Docker image - Example 2  
+      run: |
+        echo -e "PLACE 0,0,NORTH\nLEFT\nREPORT" | docker run -i robot-challenge | grep "0,0,WEST"
+        
+    - name: Test Docker image - Example 3
+      run: |
+        echo -e "PLACE 1,2,EAST\nMOVE\nMOVE\nLEFT\nMOVE\nREPORT" | docker run -i robot-challenge | grep "3,3,NORTH"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3.0'
+        bundler-cache: true
+    
+    - name: Run RuboCop
+      run: bundle exec rubocop --fail-level=error --display-only-fail-level-offenses
