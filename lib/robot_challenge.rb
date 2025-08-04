@@ -25,6 +25,7 @@ require_relative 'robot_challenge/command_dispatcher'
 require_relative 'robot_challenge/command_processor'
 require_relative 'robot_challenge/application'
 require_relative 'robot_challenge/dependency_container'
+require_relative 'robot_challenge/cli_argument_parser'
 require_relative 'robot_challenge/cache'
 
 module RobotChallenge
