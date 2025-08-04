@@ -13,6 +13,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     
+    env:
+      REDIS_URL: redis://localhost:6379
+      REDIS_AVAILABLE: true
+      ROBOT_CACHE_DEBUG: true
+    
     services:
       redis:
         image: redis:7-alpine
@@ -37,17 +42,86 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
     
+    - name: Check Redis service status
+      run: |
+        # Install net-tools for netstat command
+        sudo apt-get update && sudo apt-get install -y net-tools
+        
+        echo "=== Redis Service Status ==="
+        docker ps | grep redis || echo "No Redis container found"
+        echo ""
+        echo "=== Network connectivity ==="
+        netstat -tlnp | grep 6379 || echo "No process listening on port 6379"
+        echo ""
+        echo "=== Environment variables ==="
+        echo "REDIS_URL: ${REDIS_URL:-'not set'}"
+        echo "REDIS_AVAILABLE: ${REDIS_AVAILABLE:-'not set'}"
+    
     - name: Wait for Redis
       run: |
-        timeout 30 bash -c 'until redis-cli -h localhost ping; do sleep 1; done'
+        # Use Ruby to check Redis connectivity (more reliable than CLI tools)
+        ruby -e "
+          require 'socket'
+          require 'timeout'
+          
+          puts 'Checking Redis connectivity...'
+          
+          begin
+            Timeout.timeout(30) do
+              loop do
+                begin
+                  socket = TCPSocket.new('localhost', 6379)
+                  socket.close
+                  puts 'Redis is accessible on port 6379'
+                  break
+                rescue => e
+                  puts \"Waiting for Redis... (#{e.message})\"
+                  sleep 1
+                end
+              end
+            end
+          rescue Timeout::Error
+            puts 'Timeout waiting for Redis'
+            exit 1
+          end
+        "
+    
+    - name: Verify Redis functionality
+      run: |
+        # Test Redis with Ruby Redis gem
+        ruby -e "
+          require 'redis'
+          
+          begin
+            puts 'Testing Redis connection...'
+            redis = Redis.new(url: 'redis://localhost:6379')
+            response = redis.ping
+            puts \"Redis ping response: #{response}\"
+            
+            # Test basic operations
+            redis.set('test_key', 'test_value')
+            value = redis.get('test_key')
+            puts \"Redis test: #{value}\"
+            
+            redis.del('test_key')
+            puts 'Redis functionality verified successfully'
+            
+            # Show Redis info
+            info = redis.info
+            puts \"Redis version: #{info['redis_version']}\"
+            puts \"Redis memory: #{info['used_memory_human']}\"
+          rescue => e
+            puts \"Redis functionality test failed: #{e.message}\"
+            puts \"Error class: #{e.class}\"
+            puts \"Backtrace: #{e.backtrace.first(5).join('\\n')}\"
+            exit 1
+          end
+        "
     
     - name: Run linting
       run: bundle exec rubocop --fail-level=error
     
     - name: Run tests
-      env:
-        REDIS_URL: redis://localhost:6379
-        REDIS_AVAILABLE: true
       run: bundle exec rspec --format progress
     
     - name: Generate coverage report
