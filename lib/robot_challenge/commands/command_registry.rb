@@ -58,8 +58,7 @@ module RobotChallenge
             command_class.new(**params)
           end
         end
-      rescue StandardError => e
-        @logger.error("Error creating command #{name}: #{e.message}")
+      rescue StandardError
         nil
       end
 

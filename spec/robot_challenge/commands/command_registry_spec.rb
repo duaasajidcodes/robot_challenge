@@ -4,6 +4,15 @@ require 'spec_helper'
 
 RSpec.describe RobotChallenge::Commands::CommandRegistry do
   let(:registry) { described_class.new }
+  let(:mock_command_class) do
+    Class.new(RobotChallenge::Commands::Command) do
+      def initialize(*); end
+
+      def execute(_robot)
+        success_result
+      end
+    end
+  end
 
   describe '#initialize' do
     it 'registers default commands' do
@@ -16,17 +25,22 @@ RSpec.describe RobotChallenge::Commands::CommandRegistry do
   end
 
   describe '#register' do
-    let(:custom_command_class) { Class.new(RobotChallenge::Commands::Command) }
-
     it 'registers a new command class' do
-      registry.register('CUSTOM', custom_command_class)
+      registry.register('CUSTOM', mock_command_class)
       expect(registry.registered?('CUSTOM')).to be true
     end
 
     it 'handles case insensitive registration' do
-      registry.register('custom', custom_command_class)
+      registry.register('custom', mock_command_class)
       expect(registry.registered?('CUSTOM')).to be true
       expect(registry.registered?('custom')).to be true
+    end
+
+    it 'overwrites existing registration' do
+      registry.register('CUSTOM', mock_command_class)
+      new_command_class = Class.new(RobotChallenge::Commands::Command)
+      registry.register('CUSTOM', new_command_class)
+      expect(registry.command_names).to include('CUSTOM')
     end
   end
 
@@ -49,8 +63,13 @@ RSpec.describe RobotChallenge::Commands::CommandRegistry do
   describe '#command_names' do
     it 'returns all registered command names in sorted order' do
       names = registry.command_names
-      expect(names).to include('LEFT', 'MOVE', 'PLACE', 'REPORT', 'RIGHT')
+      expect(names).to include('PLACE', 'MOVE', 'LEFT', 'RIGHT', 'REPORT')
       expect(names).to eq(names.sort)
+    end
+
+    it 'includes newly registered commands' do
+      registry.register('CUSTOM', mock_command_class)
+      expect(registry.command_names).to include('CUSTOM')
     end
   end
 
@@ -62,6 +81,11 @@ RSpec.describe RobotChallenge::Commands::CommandRegistry do
         expect(command.x).to eq(1)
         expect(command.y).to eq(2)
         expect(command.direction_name).to eq('NORTH')
+      end
+
+      it 'handles case insensitive command name' do
+        command = registry.create_command('place', x: 0, y: 0, direction: 'SOUTH')
+        expect(command).to be_a(RobotChallenge::Commands::PlaceCommand)
       end
     end
 
@@ -85,25 +109,154 @@ RSpec.describe RobotChallenge::Commands::CommandRegistry do
         command = registry.create_command('REPORT')
         expect(command).to be_a(RobotChallenge::Commands::ReportCommand)
       end
+
+      it 'handles case insensitive command names' do
+        command = registry.create_command('move')
+        expect(command).to be_a(RobotChallenge::Commands::MoveCommand)
+      end
     end
 
     context 'for unregistered commands' do
       it 'returns nil' do
-        command = registry.create_command('UNKNOWN')
-        expect(command).to be_nil
+        expect(registry.create_command('UNKNOWN')).to be_nil
       end
     end
 
     context 'with invalid parameters' do
       it 'creates command with invalid parameters' do
-        # Test with invalid PLACE parameters - the command is still created
-        # but will fail validation when executed
         command = registry.create_command('PLACE', x: 'invalid', y: 'invalid', direction: 'INVALID')
         expect(command).to be_a(RobotChallenge::Commands::PlaceCommand)
-        expect(command.x).to eq('invalid')
-        expect(command.y).to eq('invalid')
-        expect(command.direction_name).to eq('INVALID')
+        expect(command.valid?).to be false
       end
+
+      it 'handles missing parameters gracefully' do
+        command = registry.create_command('PLACE', x: 1)
+        expect(command).to be_a(RobotChallenge::Commands::PlaceCommand)
+      end
+
+      it 'handles extra parameters gracefully' do
+        command = registry.create_command('PLACE', x: 1, y: 2, direction: 'NORTH', extra: 'param')
+        expect(command).to be_a(RobotChallenge::Commands::PlaceCommand)
+      end
+    end
+
+    context 'error handling' do
+      it 'handles command creation errors gracefully' do
+        # Create a command class that raises an error during initialization
+        error_command_class = Class.new(RobotChallenge::Commands::Command) do
+          def initialize(*)
+            raise ArgumentError, 'Invalid parameters'
+          end
+        end
+
+        registry.register('ERROR', error_command_class)
+        expect(registry.create_command('ERROR')).to be_nil
+      end
+
+      it 'handles errors gracefully when logger is nil' do
+        # Ensure logger is nil
+        registry.instance_variable_set(:@logger, nil)
+
+        error_command_class = Class.new(RobotChallenge::Commands::Command) do
+          def initialize(*)
+            raise StandardError, 'Creation failed'
+          end
+        end
+
+        registry.register('ERROR', error_command_class)
+        # Should not raise an error even when logger is nil
+        expect { registry.create_command('ERROR') }.not_to raise_error
+        expect(registry.create_command('ERROR')).to be_nil
+      end
+    end
+  end
+
+  describe '#resolve_name' do
+    it 'resolves case insensitive command names' do
+      expect(registry.send(:resolve_name, 'place')).to eq('PLACE')
+      expect(registry.send(:resolve_name, 'MOVE')).to eq('MOVE')
+      expect(registry.send(:resolve_name, 'left')).to eq('LEFT')
+    end
+
+    it 'returns original name if not found' do
+      expect(registry.send(:resolve_name, 'UNKNOWN')).to eq('UNKNOWN')
+    end
+  end
+
+  describe 'integration tests' do
+    it 'can register and create custom commands' do
+      custom_command_class = Class.new(RobotChallenge::Commands::Command) do
+        attr_reader :param1, :param2
+
+        def initialize(param1 = nil, param2 = nil)
+          @param1 = param1
+          @param2 = param2
+        end
+
+        def execute(_robot)
+          success_result
+        end
+      end
+
+      registry.register('CUSTOM', custom_command_class)
+
+      # Test without parameters
+      command = registry.create_command('CUSTOM')
+      expect(command).to be_a(custom_command_class)
+      expect(command.param1).to be_nil
+      expect(command.param2).to be_nil
+
+      # Test with parameters - the registry passes them as keyword arguments
+      command = registry.create_command('CUSTOM', param1: 'value1', param2: 'value2')
+      expect(command).to be_a(custom_command_class)
+      # The parameters are passed as keyword arguments, so they become a hash
+      expect(command.param1).to eq({ param1: 'value1', param2: 'value2' })
+      expect(command.param2).to be_nil
+    end
+
+    it 'handles commands with different parameter patterns' do
+      # Command that requires parameters
+      required_params_command = Class.new(RobotChallenge::Commands::Command) do
+        attr_reader :required_param
+
+        def initialize(required_param)
+          @required_param = required_param
+        end
+
+        def execute(_robot)
+          success_result
+        end
+      end
+
+      # Command that accepts optional parameters
+      optional_params_command = Class.new(RobotChallenge::Commands::Command) do
+        attr_reader :optional_param
+
+        def initialize(optional_param = nil)
+          @optional_param = optional_param
+        end
+
+        def execute(_robot)
+          success_result
+        end
+      end
+
+      registry.register('REQUIRED', required_params_command)
+      registry.register('OPTIONAL', optional_params_command)
+
+      # Test required parameters command
+      command = registry.create_command('REQUIRED', required_param: 'test')
+      expect(command).to be_a(required_params_command)
+      expect(command.required_param).to eq({ required_param: 'test' })
+
+      # Test optional parameters command
+      command = registry.create_command('OPTIONAL')
+      expect(command).to be_a(optional_params_command)
+      expect(command.optional_param).to be_nil
+
+      command = registry.create_command('OPTIONAL', optional_param: 'test')
+      expect(command).to be_a(optional_params_command)
+      expect(command.optional_param).to eq({ optional_param: 'test' })
     end
   end
 end
