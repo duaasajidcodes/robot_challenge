@@ -4,11 +4,12 @@ FROM ruby:3.3.0-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including Redis
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
     build-essential \
-    git && \
+    git \
+    redis-server && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy Gemfile and Gemfile.lock first for better Docker layer caching

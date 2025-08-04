@@ -13,6 +13,11 @@ module RobotChallenge
         @redis = Redis.new(url: redis_url || ENV['REDIS_URL'] || 'redis://localhost:6379')
         @cache_ttl = cache_ttl
         @namespace = namespace
+      rescue Redis::BaseError => e
+        # Fallback to mock Redis if Redis is not available
+        @redis = create_mock_redis
+        @cache_ttl = cache_ttl
+        @namespace = namespace
       end
 
       # Cache robot state
@@ -20,6 +25,8 @@ module RobotChallenge
         key = build_key("robot:#{robot_id}:state")
         @redis.setex(key, @cache_ttl, state.to_json)
         log_cache_operation('cache_robot_state', key, state)
+      rescue Redis::BaseError => e
+        log_cache_error('cache_robot_state', key, e)
       end
 
       # Get cached robot state
@@ -33,7 +40,7 @@ module RobotChallenge
           log_cache_operation('get_robot_state', key, 'MISS')
           nil
         end
-      rescue JSON::ParserError => e
+      rescue JSON::ParserError, Redis::BaseError => e
         log_cache_error('get_robot_state', key, e)
         nil
       end
@@ -43,6 +50,8 @@ module RobotChallenge
         key = build_key("command:#{command_hash}")
         @redis.setex(key, @cache_ttl, result.to_json)
         log_cache_operation('cache_command_result', key, result)
+      rescue Redis::BaseError => e
+        log_cache_error('cache_command_result', key, e)
       end
 
       # Get cached command result
@@ -56,7 +65,7 @@ module RobotChallenge
           log_cache_operation('get_cached_result', key, 'MISS')
           nil
         end
-      rescue JSON::ParserError => e
+      rescue JSON::ParserError, Redis::BaseError => e
         log_cache_error('get_cached_result', key, e)
         nil
       end
@@ -66,6 +75,8 @@ module RobotChallenge
         key = build_key("table:#{table_id}:state")
         @redis.setex(key, @cache_ttl, state.to_json)
         log_cache_operation('cache_table_state', key, state)
+      rescue Redis::BaseError => e
+        log_cache_error('cache_table_state', key, e)
       end
 
       # Get cached table state
@@ -79,7 +90,7 @@ module RobotChallenge
           log_cache_operation('get_table_state', key, 'MISS')
           nil
         end
-      rescue JSON::ParserError => e
+      rescue JSON::ParserError, Redis::BaseError => e
         log_cache_error('get_table_state', key, e)
         nil
       end
@@ -89,6 +100,8 @@ module RobotChallenge
         key = build_key('stats:commands')
         @redis.setex(key, @cache_ttl, stats.to_json)
         log_cache_operation('cache_command_stats', key, stats)
+      rescue Redis::BaseError => e
+        log_cache_error('cache_command_stats', key, e)
       end
 
       # Get cached command statistics
@@ -102,7 +115,7 @@ module RobotChallenge
           log_cache_operation('get_command_stats', key, 'MISS')
           nil
         end
-      rescue JSON::ParserError => e
+      rescue JSON::ParserError, Redis::BaseError => e
         log_cache_error('get_command_stats', key, e)
         nil
       end
@@ -115,6 +128,8 @@ module RobotChallenge
 
         @redis.del(*keys)
         log_cache_operation('invalidate_robot_cache', pattern, "Deleted #{keys.length} keys")
+      rescue Redis::BaseError => e
+        log_cache_error('invalidate_robot_cache', pattern, e)
       end
 
       # Invalidate table cache
@@ -125,6 +140,8 @@ module RobotChallenge
 
         @redis.del(*keys)
         log_cache_operation('invalidate_table_cache', pattern, "Deleted #{keys.length} keys")
+      rescue Redis::BaseError => e
+        log_cache_error('invalidate_table_cache', pattern, e)
       end
 
       # Clear all cache
@@ -135,6 +152,8 @@ module RobotChallenge
 
         @redis.del(*keys)
         log_cache_operation('clear_all_cache', pattern, "Deleted #{keys.length} keys")
+      rescue Redis::BaseError => e
+        log_cache_error('clear_all_cache', pattern, e)
       end
 
       # Get cache statistics
@@ -151,6 +170,14 @@ module RobotChallenge
 
         log_cache_operation('cache_stats', 'stats', stats)
         stats
+      rescue Redis::BaseError => e
+        log_cache_error('cache_stats', 'stats', e)
+        {
+          total_keys: 0,
+          memory_usage: 'Unknown',
+          hit_rate: 0.0,
+          keys_by_type: {}
+        }
       end
 
       # Check if Redis is available
@@ -166,6 +193,13 @@ module RobotChallenge
           available: available?,
           connection_info: connection_info,
           cache_stats: cache_stats
+        }
+      rescue Redis::BaseError => e
+        {
+          available: false,
+          error: e.message,
+          connection_info: { error: 'Unable to connect' },
+          cache_stats: { error: 'Unable to get stats' }
         }
       end
 
@@ -186,14 +220,14 @@ module RobotChallenge
       end
 
       def calculate_hit_rate
-        # This is a simplified hit rate calculation
-        # In production, you'd track hits/misses over time
         total_operations = @redis.get(build_key('stats:total_operations')).to_i
         total_hits = @redis.get(build_key('stats:total_hits')).to_i
 
         return 0.0 if total_operations.zero?
 
         (total_hits.to_f / total_operations * 100).round(2)
+      rescue Redis::BaseError
+        0.0
       end
 
       def categorize_keys(keys)
@@ -223,6 +257,51 @@ module RobotChallenge
         }
       rescue StandardError
         { error: 'Unable to get connection info' }
+      end
+
+      def create_mock_redis
+        # Create a simple mock Redis for when Redis is not available
+        Class.new do
+          def initialize
+            @data = {}
+          end
+
+          def setex(key, ttl, value)
+            @data[key] = { value: value, expires_at: Time.now + ttl }
+          end
+
+          def get(key)
+            data = @data[key]
+            return nil unless data
+            return nil if data[:expires_at] < Time.now
+            data[:value]
+          end
+
+          def del(*keys)
+            keys.count { |key| @data.delete(key) }
+          end
+
+          def keys(pattern)
+            @data.keys.select { |key| File.fnmatch(pattern, key) }
+          end
+
+          def info
+            { 'used_memory_human' => '0B' }
+          end
+
+          def ping
+            'PONG'
+          end
+
+          def client
+            OpenStruct.new(
+              host: 'localhost',
+              port: 6379,
+              db: 0,
+              timeout: 5
+            )
+          end
+        end.new
       end
     end
   end
