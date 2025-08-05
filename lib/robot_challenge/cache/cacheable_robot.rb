@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'redis_cache'
+require 'securerandom'
 
 module RobotChallenge
   module Cache
@@ -80,6 +81,9 @@ module RobotChallenge
           log_cache_error('load_from_cache', e)
           false
         end
+      rescue StandardError => e
+        log_cache_error('load_from_cache', e)
+        false
       end
 
       def invalidate_cache

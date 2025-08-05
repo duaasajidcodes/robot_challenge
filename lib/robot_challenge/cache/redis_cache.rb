@@ -66,6 +66,16 @@ module RobotChallenge
         command_result(command_key)
       end
 
+      # Alias for get_cached_result (for CachedCommandProcessor compatibility)
+      def get_command_result(command_key)
+        get_cached_result(command_key)
+      end
+
+      # Alias for set_command_result (for CachedCommandProcessor compatibility)
+      def set_command_result(command_key, result)
+        cache_command_result(command_key, result)
+      end
+
       # Cache table state
       def cache_table_state(table_id, state)
         key = build_key("table:#{table_id}:state")
