@@ -1,6 +1,12 @@
 # frozen_string_literal: true
 
-require 'redis'
+begin
+  require 'redis'
+  REDIS_AVAILABLE = true
+rescue LoadError
+  REDIS_AVAILABLE = false
+end
+
 require 'json'
 
 module RobotChallenge
@@ -10,7 +16,11 @@ module RobotChallenge
       attr_reader :redis, :cache_ttl, :namespace
 
       def initialize(redis_url: nil, cache_ttl: 3600, namespace: 'robot_challenge')
-        @redis = Redis.new(url: redis_url || ENV['REDIS_URL'] || 'redis://localhost:6379')
+        @redis = if REDIS_AVAILABLE
+                   Redis.new(url: redis_url || ENV['REDIS_URL'] || 'redis://localhost:6379')
+                 else
+                   create_mock_redis
+                 end
         @cache_ttl = cache_ttl
         @namespace = namespace
       rescue Redis::BaseError
