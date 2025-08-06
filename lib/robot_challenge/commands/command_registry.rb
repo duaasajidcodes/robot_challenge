@@ -70,6 +70,7 @@ module RobotChallenge
         register('LEFT', LeftCommand)
         register('RIGHT', RightCommand)
         register('REPORT', ReportCommand)
+        register('EXIT', ExitCommand, aliases: %w[QUIT BYE])
       end
     end
   end

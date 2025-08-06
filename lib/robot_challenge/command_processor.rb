@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'commands/exit_command'
+
 module RobotChallenge
   # Coordinates command parsing and dispatching
   # Follows Single Responsibility Principle by delegating to specialized services
@@ -23,8 +25,14 @@ module RobotChallenge
 
     # Process a command object
     def process_command(command)
-      @dispatcher.dispatch(command) do |formatted_message|
-        handle_output(formatted_message)
+      if command.is_a?(Commands::ExitCommand)
+        result = command.execute(robot)
+        handle_output(result[:message]) if result[:message]
+        exit(0)
+      else
+        @dispatcher.dispatch(command) do |formatted_message|
+          handle_output(formatted_message)
+        end
       end
     end
 

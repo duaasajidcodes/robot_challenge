@@ -49,6 +49,7 @@ bundle exec ruby bin/cache_demo.rb
 - `LEFT` - Rotate robot 90° counter-clockwise
 - `RIGHT` - Rotate robot 90° clockwise
 - `REPORT` - Report current position and direction
+- `EXIT` - Exit the application (aliases: `QUIT`, `BYE`)
 
 ## Configuration
 

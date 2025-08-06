@@ -142,8 +142,8 @@ module RobotChallenge
 
     def display_welcome_message
       output_handler.call('Welcome to Robot Challenge!')
-      output_handler.call('Commands: PLACE X,Y,DIRECTION, MOVE, LEFT, RIGHT, REPORT')
-      output_handler.call('Type your commands:')
+      output_handler.call('Commands: PLACE X,Y,DIRECTION, MOVE, LEFT, RIGHT, REPORT, EXIT')
+      output_handler.call('Type your commands (or EXIT to quit):')
     end
 
     def run_interactive_mode

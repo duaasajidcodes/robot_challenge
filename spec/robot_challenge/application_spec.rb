@@ -385,8 +385,8 @@ RSpec.describe RobotChallenge::Application do
         app.set_output_handler(->(msg) { output << msg })
         app.send(:display_welcome_message)
         expect(output).to include('Welcome to Robot Challenge!')
-        expect(output).to include('Commands: PLACE X,Y,DIRECTION, MOVE, LEFT, RIGHT, REPORT')
-        expect(output).to include('Type your commands:')
+        expect(output).to include('Commands: PLACE X,Y,DIRECTION, MOVE, LEFT, RIGHT, REPORT, EXIT')
+        expect(output).to include('Type your commands (or EXIT to quit):')
       end
     end
 
