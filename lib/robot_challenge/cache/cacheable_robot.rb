@@ -50,6 +50,18 @@ module RobotChallenge
         @robot.placed?
       end
 
+      def invalidate_cache
+        @cache.invalidate_robot_cache(@robot_id)
+      end
+
+      def cache_stats
+        @cache.cache_stats
+      end
+
+      def health_check
+        @cache.health_check
+      end
+
       # Delegate other methods to the underlying robot
       def method_missing(method_name, ...)
         if @robot.respond_to?(method_name)
@@ -68,34 +80,17 @@ module RobotChallenge
         cached_state = @cache.get_robot_state(@robot_id)
         return false unless cached_state
 
-        begin
-          # Reconstruct robot state from cache
-          if cached_state[:position]
-            position = Position.new(cached_state[:position][:x], cached_state[:position][:y])
-            direction = Direction.new(cached_state[:direction])
-            @robot.instance_variable_set(:@position, position)
-            @robot.instance_variable_set(:@direction, direction)
-          end
-          true
-        rescue StandardError => e
-          log_cache_error('load_from_cache', e)
-          false
+        # Reconstruct robot state from cache
+        if cached_state[:position]
+          position = Position.new(cached_state[:position][:x], cached_state[:position][:y])
+          direction = Direction.new(cached_state[:direction])
+          @robot.instance_variable_set(:@position, position)
+          @robot.instance_variable_set(:@direction, direction)
         end
+        true
       rescue StandardError => e
         log_cache_error('load_from_cache', e)
         false
-      end
-
-      def invalidate_cache
-        @cache.invalidate_robot_cache(@robot_id)
-      end
-
-      def cache_stats
-        @cache.cache_stats
-      end
-
-      def health_check
-        @cache.health_check
       end
 
       private

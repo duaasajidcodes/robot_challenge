@@ -19,14 +19,12 @@ module RobotChallenge
     def dispatch(command, &)
       return false if command.nil?
 
-      @logger.debug("Dispatching command: #{command.class}")
       begin
         result = command.execute(robot)
         handle_result(result, &)
       rescue StandardError => e
         @logger.error("Error executing command: #{e.message}")
-        # Silently ignore errors as per requirements
-        handle_result(error_result(e.message, :execution_error), &)
+        handle_result({ status: :error, message: e.message, error_type: :execution_error }, &)
       end
 
       false # Continue processing
@@ -55,7 +53,7 @@ module RobotChallenge
 
       if robot_report?(message)
         handle_robot_report(message, &block)
-      elsif block_given?
+      elsif block
         block.call(message)
       end
     end
@@ -63,7 +61,7 @@ module RobotChallenge
     def handle_robot_report(message, &block)
       robot_object = message.is_a?(RobotChallenge::Robot) ? message : @robot
       formatted_message = @output_formatter.format_report(robot_object)
-      block.call(formatted_message) if formatted_message && block_given?
+      block.call(formatted_message) if formatted_message && block
     end
 
     def robot_report?(message)
@@ -73,16 +71,12 @@ module RobotChallenge
 
     def handle_error_result(result, &block)
       formatted_message = @output_formatter.format_error(result[:message], result[:error_type])
-      block.call(formatted_message) if formatted_message && block_given?
+      block.call(formatted_message) if formatted_message && block
     end
 
     def handle_success_result(result, &block)
       formatted_message = @output_formatter.format_success(result[:message])
-      block.call(formatted_message) if formatted_message && block_given?
-    end
-
-    def error_result(message, error_type = :general_error)
-      { status: :error, message: message, error_type: error_type }
+      block.call(formatted_message) if formatted_message && block
     end
   end
 end

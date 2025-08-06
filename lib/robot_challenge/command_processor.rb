@@ -7,11 +7,6 @@ module RobotChallenge
     attr_accessor :output_handler
     attr_reader :robot, :parser, :dispatcher
 
-    # Backward compatibility: expose command_factory through parser
-    def command_factory
-      @parser.command_factory
-    end
-
     def initialize(robot, output_handler: nil, parser: nil, dispatcher: nil, logger: nil)
       @robot = robot
       @output_handler = output_handler || method(:default_output_handler)
@@ -22,14 +17,12 @@ module RobotChallenge
 
     # Process a command string
     def process_command_string(command_string)
-      @logger.debug("Processing command: #{command_string}")
       command = @parser.parse(command_string)
       process_command(command)
     end
 
     # Process a command object
     def process_command(command)
-      @logger.debug("Executing command: #{command.class}")
       @dispatcher.dispatch(command) do |formatted_message|
         handle_output(formatted_message)
       end
@@ -51,6 +44,11 @@ module RobotChallenge
     # Register a new command type
     def register_command(name, command_class)
       @parser.register_command(name, command_class)
+    end
+
+    # Backward compatibility: expose command_factory through parser
+    def command_factory
+      @parser.command_factory
     end
 
     private

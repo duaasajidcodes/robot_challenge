@@ -317,7 +317,6 @@ RSpec.describe RobotChallenge::Cache::RedisCache, type: :cache do
       )
 
       expect(health[:available]).to be true
-      # NOTE: connection_info might vary depending on Redis version
       expect(health[:connection_info]).to be_a(Hash)
     end
   end
@@ -330,7 +329,7 @@ RSpec.describe RobotChallenge::Cache::RedisCache, type: :cache do
       short_ttl_cache.cache_robot_state(robot_id, robot_state)
       expect(short_ttl_cache.get_robot_state(robot_id)).not_to be_nil
 
-      sleep(2) # Wait for TTL to expire
+      sleep(2)
 
       expect(short_ttl_cache.get_robot_state(robot_id)).to be_nil
     end

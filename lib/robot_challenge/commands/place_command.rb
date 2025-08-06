@@ -32,7 +32,7 @@ module RobotChallenge
         # Check if coordinates are valid integers
         return false unless pos_x_valid? && pos_y_valid?
         return false unless x_coord >= 0 && y_coord >= 0
-        return false unless direction&.valid?
+        return false unless direction
 
         true
       end

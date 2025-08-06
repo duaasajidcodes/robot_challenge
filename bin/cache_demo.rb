@@ -105,7 +105,6 @@ puts "Average execution time: #{command_stats[:average_execution_time]} seconds"
 
 puts "\n🎉 Demo completed successfully!"
 puts "\n💡 Tips:"
-puts '  - Set ROBOT_CACHE_DEBUG=1 to see cache operations'
 puts '  - Use cache.health_check to monitor cache status'
 puts '  - Use cache.clear_all_cache to reset cache'
 puts '  - Cache TTL is configurable (default: 1 hour)'

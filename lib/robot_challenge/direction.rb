@@ -30,10 +30,6 @@ module RobotChallenge
       name
     end
 
-    def valid?
-      VALID_DIRECTIONS.include?(name)
-    end
-
     def turn_left
       case name
       when 'NORTH' then Direction.new('WEST')

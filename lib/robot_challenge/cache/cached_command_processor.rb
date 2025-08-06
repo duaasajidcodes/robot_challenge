@@ -85,15 +85,9 @@ module RobotChallenge
         cache.invalidate_robot_cache(robot_id)
       end
 
-      def log_cache_hit(command_string)
-        # In a real application, you might want to log this
-        # logger.debug("Cache hit for command: #{command_string}")
-      end
+      def log_cache_hit(command_string); end
 
-      def log_cache_miss(command_string)
-        # In a real application, you might want to log this
-        # logger.debug("Cache miss for command: #{command_string}")
-      end
+      def log_cache_miss(command_string); end
 
       def method_missing(method_name, *, &)
         if processor.respond_to?(method_name)

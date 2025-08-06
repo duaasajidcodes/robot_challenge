@@ -266,38 +266,6 @@ module RobotChallenge
         false
       end
 
-      # Cache command statistics
-      def cache_command_stats(stats)
-        key = build_key('stats:commands')
-        store_data(key, stats, 'Cached command statistics')
-      end
-
-      # Get cached command statistics
-      def cached_command_stats
-        key = build_key('stats:commands')
-        retrieve_data(key)
-      end
-
-      # Get cached result (alias for compatibility)
-      def cached_result(command_hash)
-        command_result(command_hash)
-      end
-
-      # Get command statistics
-      def command_stats
-        pattern = build_key('command:*')
-        keys = @redis.keys(pattern)
-
-        {
-          total_commands: keys.length,
-          cached_commands: keys.length,
-          cache_hits: 0,
-          cache_misses: 0,
-          average_execution_time: 0.0,
-          last_updated: Time.now.iso8601
-        }
-      end
-
       private
 
       def setup_redis_connection(redis_url)
