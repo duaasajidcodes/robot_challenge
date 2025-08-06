@@ -75,13 +75,13 @@ module RobotChallenge
     def parse_argument(arg, index)
       case arg
       when '--width', '-w'
-        @table_width = @argv[index + 1].to_i if @argv[index + 1]
+        parse_width(index)
       when '--height', '-h'
-        @table_height = @argv[index + 1].to_i if @argv[index + 1]
+        parse_height(index)
       when '--input', '-i'
-        @input_file = @argv[index + 1] if @argv[index + 1]
+        parse_input_file(index)
       when '--output', '-o'
-        @output_format = @argv[index + 1] if @argv[index + 1]
+        parse_output_format(index)
       end
     end
 
@@ -98,6 +98,22 @@ module RobotChallenge
       # If -h is followed by a number, it's likely --height
       next_arg = @argv[h_index + 1]
       next_arg.nil? || !next_arg.match?(/\A\d+\z/)
+    end
+
+    def parse_width(index)
+      @table_width = @argv[index + 1].to_i if @argv[index + 1]
+    end
+
+    def parse_height(index)
+      @table_height = @argv[index + 1].to_i if @argv[index + 1]
+    end
+
+    def parse_input_file(index)
+      @input_file = @argv[index + 1] if @argv[index + 1]
+    end
+
+    def parse_output_format(index)
+      @output_format = @argv[index + 1] if @argv[index + 1]
     end
   end
 end

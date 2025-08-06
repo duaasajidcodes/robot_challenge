@@ -17,8 +17,7 @@ module RobotChallenge
       if REDIS_CACHE_AVAILABLE
         RedisCache.new(redis_url: redis_url, cache_ttl: cache_ttl, namespace: namespace)
       else
-        # Return a mock cache when Redis is not available
-        create_mock_cache
+        MockCacheProvider.new
       end
     end
 
@@ -44,24 +43,12 @@ module RobotChallenge
 
     # Get cache health status
     def self.health_check(redis_url: nil)
-      unless REDIS_CACHE_AVAILABLE
-        return {
-          available: false,
-          error: 'Redis gem not available',
-          connection_info: { error: 'Redis gem not available' },
-          cache_stats: { error: 'Redis gem not available' }
-        }
-      end
+      return unavailable_health_response('Redis gem not available') unless REDIS_CACHE_AVAILABLE
 
       cache = create_redis_cache(redis_url: redis_url)
       cache.health_check
     rescue StandardError => e
-      {
-        available: false,
-        error: e.message,
-        connection_info: { error: 'Unable to connect' },
-        cache_stats: { error: 'Unable to get stats' }
-      }
+      unavailable_health_response(e.message)
     end
 
     # Clear all cache
@@ -74,71 +61,93 @@ module RobotChallenge
 
     # Get cache statistics
     def self.cache_stats(redis_url: nil, namespace: 'robot_challenge')
-      unless REDIS_CACHE_AVAILABLE
-        return {
-          error: 'Redis gem not available',
-          total_keys: 0,
-          memory_usage: 'Unknown',
-          hit_rate: 0.0,
-          keys_by_type: {}
-        }
-      end
+      return unavailable_stats_response('Redis gem not available') unless REDIS_CACHE_AVAILABLE
 
       cache = create_redis_cache(redis_url: redis_url, namespace: namespace)
       cache.cache_stats
     rescue StandardError => e
-      {
-        error: e.message,
-        total_keys: 0,
-        memory_usage: 'Unknown',
-        hit_rate: 0.0,
-        keys_by_type: {}
-      }
+      unavailable_stats_response(e.message)
     end
 
-    # Create a mock cache when Redis is not available
-    def self.create_mock_cache
-      mock_cache = Object.new
+    # Private helper methods
+    class << self
+      private
 
-      def mock_cache.cache_robot_state(robot_id, state)
-        # No-op
-      end
-
-      def mock_cache.get_robot_state(_robot_id)
-        nil
-      end
-
-      def mock_cache.set_command_result(command_key, result)
-        # No-op
-      end
-
-      def mock_cache.get_command_result(_command_key)
-        nil
-      end
-
-      def mock_cache.cache_table_state(table_id, state)
-        # No-op
-      end
-
-      def mock_cache.get_table_state(_table_id)
-        nil
-      end
-
-      def mock_cache.invalidate_robot_cache(robot_id)
-        # No-op
-      end
-
-      def mock_cache.invalidate_table_cache(table_id)
-        # No-op
-      end
-
-      def mock_cache.clear_all_cache
-        # No-op
-      end
-
-      def mock_cache.cache_stats
+      def unavailable_health_response(error_message)
         {
-          error: 'Redis gem not available',
+          available: false,
+          error: error_message,
+          connection_info: { error: error_message },
+          cache_stats: { error: error_message }
+        }
+      end
+
+      def unavailable_stats_response(error_message)
+        {
+          error: error_message,
+          total_keys: 0,
+          memory_usage: 'Unknown',
+          hit_rate: 0.0,
+          keys_by_type: {}
+        }
+      end
+    end
+
+    # Mock cache provider when Redis is not available
+    class MockCacheProvider
+      def cache_robot_state(_robot_id, _state)
+        # No-op for mock implementation
+      end
+
+      def get_robot_state(_robot_id)
+        nil
+      end
+
+      def set_command_result(_command_key, _result)
+        # No-op for mock implementation
+      end
+
+      def get_command_result(_command_key)
+        nil
+      end
+
+      def cache_table_state(_table_id, _state)
+        # No-op for mock implementation
+      end
+
+      def get_table_state(_table_id)
+        nil
+      end
+
+      def invalidate_robot_cache(_robot_id)
+        # No-op for mock implementation
+      end
+
+      def invalidate_table_cache(_table_id)
+        # No-op for mock implementation
+      end
+
+      def clear_all_cache
+        # No-op for mock implementation
+      end
+
+      def cache_stats
+        default_unavailable_stats
+      end
+
+      def available?
+        false
+      end
+
+      def health_check
+        default_unavailable_health
+      end
+
+      private
+
+      def default_unavailable_stats
+        {
+          error: 'Redis not available',
           total_keys: 0,
           memory_usage: 'Unknown',
           hit_rate: 0.0,
@@ -146,20 +155,14 @@ module RobotChallenge
         }
       end
 
-      def mock_cache.available?
-        false
-      end
-
-      def mock_cache.health_check
+      def default_unavailable_health
         {
           available: false,
-          error: 'Redis gem not available',
-          connection_info: { error: 'Redis gem not available' },
-          cache_stats: { error: 'Redis gem not available' }
+          error: 'Redis not available',
+          connection_info: { error: 'Redis not available' },
+          cache_stats: { error: 'Redis not available' }
         }
       end
-
-      mock_cache
     end
   end
 end

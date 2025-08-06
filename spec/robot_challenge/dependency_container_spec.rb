@@ -12,15 +12,19 @@ RSpec.describe RobotChallenge::DependencyContainer do
       expect(container.instance_variable_get(:@factories)).not_to be_empty
     end
 
-    it 'registers default factories' do
-      expect(container.registered?(:logger)).to be true
-      expect(container.registered?(:output_formatter)).to be true
-      expect(container.registered?(:config)).to be true
-      expect(container.registered?(:table)).to be true
-      expect(container.registered?(:robot)).to be true
-      expect(container.registered?(:command_parser)).to be true
-      expect(container.registered?(:command_dispatcher)).to be true
-      expect(container.registered?(:command_processor)).to be true
+    it 'registers all default factories' do
+      %i[
+        logger
+        output_formatter
+        config
+        table
+        robot
+        command_parser
+        command_dispatcher
+        command_processor
+      ].each do |key|
+        expect(container.registered?(key)).to be true
+      end
     end
   end
 
@@ -268,7 +272,9 @@ RSpec.describe RobotChallenge::DependencyContainer do
         test_class = Class.new do
           attr_reader :param1
 
-          def initialize(param1: nil) = @param1 = param1
+          def initialize(param1: nil)
+            @param1 = param1
+          end
         end
 
         custom_container = described_class.new

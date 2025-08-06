@@ -108,6 +108,31 @@ RSpec.describe RobotChallenge::Application do
     end
   end
 
+  describe '#output_formatter=' do
+    it 'sets output formatter and updates processor' do
+      app = described_class.new
+      formatter = RobotChallenge::JsonOutputFormatter.new
+      app.output_formatter = formatter
+      expect(app.output_formatter).to eq(formatter)
+    end
+
+    it 'updates processor output handler' do
+      app = described_class.new
+      formatter = RobotChallenge::JsonOutputFormatter.new
+      allow(app.processor).to receive(:output_handler=)
+      app.output_formatter = formatter
+      expect(app.processor).to have_received(:output_handler=)
+    end
+
+    it 'updates dispatcher formatter if available' do
+      app = described_class.new
+      formatter = RobotChallenge::JsonOutputFormatter.new
+      allow(app.processor.dispatcher).to receive(:output_formatter=)
+      app.output_formatter = formatter
+      expect(app.processor.dispatcher).to have_received(:output_formatter=).with(formatter)
+    end
+  end
+
   describe '#set_output_formatter' do
     it 'sets output formatter and updates processor' do
       app = described_class.new

@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe 'RobotChallenge Interfaces' do
+RSpec.describe RobotChallenge::CommandParser do
   describe 'CommandParser interface' do
     let(:parser_class) do
       Class.new do
@@ -239,8 +239,10 @@ RSpec.describe 'RobotChallenge Interfaces' do
   end
 
   describe 'interface integration' do
-    it 'allows classes to implement multiple interfaces' do
-      multi_interface_class = Class.new do
+    subject(:instance) { multi_interface_class.new }
+
+    let(:multi_interface_class) do
+      Class.new do
         include RobotChallenge::CommandParser
         include RobotChallenge::OutputHandler
         include RobotChallenge::Logger
@@ -281,18 +283,48 @@ RSpec.describe 'RobotChallenge Interfaces' do
           "error: #{message}"
         end
       end
+    end
 
-      instance = multi_interface_class.new
+    describe 'command parser interface' do
+      it 'parses a single command' do
+        expect(instance.parse('PLACE 1,1,NORTH')).to eq('parsed: PLACE 1,1,NORTH')
+      end
 
-      expect(instance.parse('PLACE 1,1,NORTH')).to eq('parsed: PLACE 1,1,NORTH')
-      expect(instance.parse_commands(%w[MOVE LEFT])).to eq(['parsed: MOVE', 'parsed: LEFT'])
-      expect(instance.available_commands).to eq(%w[PLACE MOVE LEFT RIGHT REPORT])
-      expect(instance.register_command('TEST', Class.new)).to eq('registered: TEST')
-      expect(instance.call('test message')).to eq('handled: test message')
-      expect(instance.info('test')).to eq('info: test')
-      expect(instance.debug('test')).to eq('debug: test')
-      expect(instance.warn('test')).to eq('warn: test')
-      expect(instance.error('test')).to eq('error: test')
+      it 'parses multiple commands' do
+        expect(instance.parse_commands(%w[MOVE LEFT])).to eq(['parsed: MOVE', 'parsed: LEFT'])
+      end
+
+      it 'returns available commands' do
+        expect(instance.available_commands).to eq(%w[PLACE MOVE LEFT RIGHT REPORT])
+      end
+
+      it 'registers a command' do
+        expect(instance.register_command('TEST', Class.new)).to eq('registered: TEST')
+      end
+    end
+
+    describe 'output handler interface' do
+      it 'handles messages' do
+        expect(instance.call('test message')).to eq('handled: test message')
+      end
+    end
+
+    describe 'logger interface' do
+      it 'logs info' do
+        expect(instance.info('foo')).to eq('info: foo')
+      end
+
+      it 'logs debug' do
+        expect(instance.debug('bar')).to eq('debug: bar')
+      end
+
+      it 'logs warnings' do
+        expect(instance.warn('baz')).to eq('warn: baz')
+      end
+
+      it 'logs errors' do
+        expect(instance.error('oops')).to eq('error: oops')
+      end
     end
   end
 end

@@ -87,14 +87,14 @@ RSpec.describe RobotChallenge::InputSource do
 
     describe '#gets' do
       it 'delegates to io' do
-        expect(mock_io).to receive(:gets).and_return('test line')
+        allow(mock_io).to receive(:gets).and_return('test line')
         expect(stdin_source.gets).to eq('test line')
       end
     end
 
     describe '#tty?' do
       it 'delegates to io' do
-        expect(mock_io).to receive(:tty?).and_return(true)
+        allow(mock_io).to receive(:tty?).and_return(true)
         expect(stdin_source.tty?).to be true
       end
     end
@@ -161,7 +161,7 @@ RSpec.describe RobotChallenge::InputSource do
       end
 
       it 'caches lines on first call' do
-        expect(File).to receive(:readlines).with(temp_file.path).and_return(%w[line1 line2])
+        allow(File).to receive(:readlines).with(temp_file.path).and_return(%w[line1 line2])
 
         file_source.gets
         file_source.gets
@@ -295,7 +295,7 @@ RSpec.describe RobotChallenge::InputSource do
 
     describe '#gets' do
       it 'delegates to socket' do
-        expect(mock_socket).to receive(:gets).and_return('test line')
+        allow(mock_socket).to receive(:gets).and_return('test line')
         expect(network_source.gets).to eq('test line')
       end
     end

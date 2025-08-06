@@ -9,35 +9,61 @@ require_relative 'config'
 
 module RobotChallenge
   class Application
-    attr_reader :robot, :table, :processor, :input_source, :output_destination
-    attr_accessor :output_formatter
+    attr_reader :robot, :table, :processor, :input_source, :output_destination, :output_formatter
 
-    # Custom setter for output_handler to avoid conflicts
+    def initialize(options = {})
+      setup_configuration(options)
+      setup_io(options)
+      setup_formatter_and_logger(options)
+      setup_table_and_robot(options)
+      setup_processor(options)
+    end
 
-    def initialize(table_width: nil, table_height: nil, input_source: $stdin, output_destination: $stdout, config: nil,
-                   output_formatter: nil, processor: nil, robot: nil, table: nil, logger: nil,
-                   command_parser: nil, command_dispatcher: nil)
-      @config = config || Config.for_environment
-      @table = build_table(table_width, table_height, table)
-      @robot = build_robot(robot, processor)
-      @input_source = InputSourceFactory.create(input_source)
-      @output_destination = output_destination
-      @output_formatter = output_formatter || OutputFormatterFactory.from_environment
-      @logger = logger || LoggerFactory.from_environment
-      @processor = processor || create_processor(output_handler, command_parser, command_dispatcher)
+    def setup_configuration(options)
+      @config = options[:config] || Config.for_environment
+    end
+
+    def setup_io(options)
+      @input_source       = InputSourceFactory.create(options[:input_source] || $stdin)
+      @output_destination = options[:output_destination] || $stdout
+    end
+
+    def setup_formatter_and_logger(options)
+      @output_formatter = options[:output_formatter] || OutputFormatterFactory.from_environment
+      @logger           = options[:logger] || LoggerFactory.from_environment
+    end
+
+    def setup_table_and_robot(options)
+      @table = build_table(options[:table_width], options[:table_height], options[:table])
+      @robot = build_robot(options[:robot], options[:processor])
+    end
+
+    def setup_processor(options)
+      @processor = options[:processor] || create_processor(
+        output_handler,
+        options[:command_parser],
+        options[:command_dispatcher]
+      )
     end
 
     def input_source=(source)
       @input_source = InputSourceFactory.create(source)
     end
 
-    def set_input_source(source)
-      @input_source = InputSourceFactory.create(source)
-    end
-
     def output_handler=(handler)
       @output_handler = handler
       processor.output_handler = handler if processor.respond_to?(:output_handler=)
+    end
+
+    def output_formatter=(formatter)
+      @output_formatter = formatter
+      update_processor_output_handler
+      update_dispatcher_formatter(formatter)
+    end
+
+    # rubocop:disable Naming/AccessorMethodName
+    def set_input_source(source)
+      @input_source = InputSourceFactory.create(source)
     end
 
     def set_output_handler(handler)
@@ -50,6 +76,7 @@ module RobotChallenge
       update_processor_output_handler
       update_dispatcher_formatter(formatter)
     end
+    # rubocop:enable Naming/AccessorMethodName
 
     def run
       display_welcome_message
@@ -85,8 +112,6 @@ module RobotChallenge
     def available_commands
       processor.available_commands
     end
-
-    private
 
     def build_table(table_width, table_height, table)
       return table if table

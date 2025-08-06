@@ -46,7 +46,9 @@ RSpec.describe RobotChallenge::Cache do
   end
 
   describe '.create_cached_processor' do
-    let(:processor) { RobotChallenge::CommandProcessor.new(RobotChallenge::Robot.new(RobotChallenge::Table.new(5, 5))) }
+    let(:processor) do
+      RobotChallenge::CommandProcessor.new(RobotChallenge::Robot.new(RobotChallenge::Table.new(5, 5)))
+    end
 
     it 'creates a cached command processor with default parameters' do
       cached_processor = described_class.create_cached_processor(processor)
@@ -64,30 +66,41 @@ RSpec.describe RobotChallenge::Cache do
 
   describe '.redis_available?' do
     context 'when Redis is available' do
-      before do
-        allow_any_instance_of(RobotChallenge::Cache::RedisCache).to receive(:available?).and_return(true)
-      end
-
       it 'returns true' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache).and_return(mock_cache)
+        allow(mock_cache).to receive(:available?).and_return(true)
+
         expect(described_class.redis_available?).to be true
       end
 
       it 'returns true with custom Redis URL' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache)
+          .with(redis_url: 'redis://localhost:6379/1')
+          .and_return(mock_cache)
+        allow(mock_cache).to receive(:available?).and_return(true)
+
         expect(described_class.redis_available?(redis_url: 'redis://localhost:6379/1')).to be true
       end
     end
 
     context 'when Redis is not available' do
-      before do
-        allow_any_instance_of(RobotChallenge::Cache::RedisCache).to receive(:available?).and_raise(StandardError,
-                                                                                                   'Connection failed')
-      end
-
       it 'returns false' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache).and_return(mock_cache)
+        allow(mock_cache).to receive(:available?).and_raise(StandardError, 'Connection failed')
+
         expect(described_class.redis_available?).to be false
       end
 
       it 'returns false with custom Redis URL' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache)
+          .with(redis_url: 'redis://invalid:6379')
+          .and_return(mock_cache)
+        allow(mock_cache).to receive(:available?).and_raise(StandardError, 'Connection failed')
+
         expect(described_class.redis_available?(redis_url: 'redis://invalid:6379')).to be false
       end
     end
@@ -103,33 +116,38 @@ RSpec.describe RobotChallenge::Cache do
         }
       end
 
-      before do
-        allow_any_instance_of(RobotChallenge::Cache::RedisCache).to receive(:health_check).and_return(health_info)
-      end
-
       it 'returns health information' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache).and_return(mock_cache)
+        allow(mock_cache).to receive(:health_check).and_return(health_info)
+
         result = described_class.health_check
         expect(result).to eq(health_info)
       end
 
       it 'returns health information with custom Redis URL' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache)
+          .with(redis_url: 'redis://localhost:6379/1')
+          .and_return(mock_cache)
+        allow(mock_cache).to receive(:health_check).and_return(health_info)
+
         result = described_class.health_check(redis_url: 'redis://localhost:6379/1')
         expect(result).to eq(health_info)
       end
     end
 
     context 'when Redis is not available' do
-      before do
-        allow_any_instance_of(RobotChallenge::Cache::RedisCache).to receive(:health_check).and_raise(StandardError,
-                                                                                                     'Connection failed')
-      end
-
       it 'returns error information' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache).and_return(mock_cache)
+        allow(mock_cache).to receive(:health_check).and_raise(StandardError, 'Unable to connect')
+
         result = described_class.health_check
         expect(result[:available]).to be false
-        expect(result[:error]).to eq('Connection failed')
+        expect(result[:error]).to eq('Unable to connect')
         expect(result[:connection_info][:error]).to eq('Unable to connect')
-        expect(result[:cache_stats][:error]).to eq('Unable to get stats')
+        expect(result[:cache_stats][:error]).to eq('Unable to connect')
       end
     end
   end
@@ -170,16 +188,22 @@ RSpec.describe RobotChallenge::Cache do
         }
       end
 
-      before do
-        allow_any_instance_of(RobotChallenge::Cache::RedisCache).to receive(:cache_stats).and_return(stats)
-      end
-
       it 'returns cache statistics with default parameters' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache).and_return(mock_cache)
+        allow(mock_cache).to receive(:cache_stats).and_return(stats)
+
         result = described_class.cache_stats
         expect(result).to eq(stats)
       end
 
       it 'returns cache statistics with custom parameters' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache)
+          .with(redis_url: 'redis://localhost:6379/1', namespace: 'custom_namespace')
+          .and_return(mock_cache)
+        allow(mock_cache).to receive(:cache_stats).and_return(stats)
+
         result = described_class.cache_stats(
           redis_url: 'redis://localhost:6379/1',
           namespace: 'custom_namespace'
@@ -189,12 +213,11 @@ RSpec.describe RobotChallenge::Cache do
     end
 
     context 'when Redis is not available' do
-      before do
-        allow_any_instance_of(RobotChallenge::Cache::RedisCache).to receive(:cache_stats).and_raise(StandardError,
-                                                                                                    'Stats unavailable')
-      end
-
       it 'returns error information' do
+        mock_cache = instance_double(RobotChallenge::Cache::RedisCache)
+        allow(described_class).to receive(:create_redis_cache).and_return(mock_cache)
+        allow(mock_cache).to receive(:cache_stats).and_raise(StandardError, 'Stats unavailable')
+
         result = described_class.cache_stats
         expect(result[:error]).to eq('Stats unavailable')
         expect(result[:total_keys]).to eq(0)

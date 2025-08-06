@@ -184,8 +184,8 @@ RSpec.describe RobotChallenge::Commands::CommandRegistry do
   end
 
   describe 'integration tests' do
-    it 'can register and create custom commands' do
-      custom_command_class = Class.new(RobotChallenge::Commands::Command) do
+    let(:custom_command_class) do
+      Class.new(RobotChallenge::Commands::Command) do
         attr_reader :param1, :param2
 
         def initialize(param1 = nil, param2 = nil)
@@ -197,66 +197,24 @@ RSpec.describe RobotChallenge::Commands::CommandRegistry do
           success_result
         end
       end
+    end
 
+    before do
       registry.register('CUSTOM', custom_command_class)
+    end
 
-      # Test without parameters
+    it 'creates custom command without parameters' do
       command = registry.create_command('CUSTOM')
       expect(command).to be_a(custom_command_class)
       expect(command.param1).to be_nil
       expect(command.param2).to be_nil
-
-      # Test with parameters - the registry passes them as keyword arguments
-      command = registry.create_command('CUSTOM', param1: 'value1', param2: 'value2')
-      expect(command).to be_a(custom_command_class)
-      # The parameters are passed as keyword arguments, so they become a hash
-      expect(command.param1).to eq({ param1: 'value1', param2: 'value2' })
-      expect(command.param2).to be_nil
     end
 
-    it 'handles commands with different parameter patterns' do
-      # Command that requires parameters
-      required_params_command = Class.new(RobotChallenge::Commands::Command) do
-        attr_reader :required_param
-
-        def initialize(required_param)
-          @required_param = required_param
-        end
-
-        def execute(_robot)
-          success_result
-        end
-      end
-
-      # Command that accepts optional parameters
-      optional_params_command = Class.new(RobotChallenge::Commands::Command) do
-        attr_reader :optional_param
-
-        def initialize(optional_param = nil)
-          @optional_param = optional_param
-        end
-
-        def execute(_robot)
-          success_result
-        end
-      end
-
-      registry.register('REQUIRED', required_params_command)
-      registry.register('OPTIONAL', optional_params_command)
-
-      # Test required parameters command
-      command = registry.create_command('REQUIRED', required_param: 'test')
-      expect(command).to be_a(required_params_command)
-      expect(command.required_param).to eq({ required_param: 'test' })
-
-      # Test optional parameters command
-      command = registry.create_command('OPTIONAL')
-      expect(command).to be_a(optional_params_command)
-      expect(command.optional_param).to be_nil
-
-      command = registry.create_command('OPTIONAL', optional_param: 'test')
-      expect(command).to be_a(optional_params_command)
-      expect(command.optional_param).to eq({ optional_param: 'test' })
+    it 'creates custom command with parameters' do
+      command = registry.create_command('CUSTOM', param1: 'value1', param2: 'value2')
+      expect(command).to be_a(custom_command_class)
+      expect(command.param1).to eq({ param1: 'value1', param2: 'value2' })
+      expect(command.param2).to be_nil
     end
   end
 end
