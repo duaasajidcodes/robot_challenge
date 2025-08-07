@@ -22,14 +22,12 @@ RUN bundle config set --local deployment 'true' && \
 # Copy application code
 COPY . .
 
-# Make executable
-RUN chmod +x bin/robot_challenge
-
-# Create non-root user
+# Create non-root user and set permissions
 RUN useradd -m -s /bin/bash robot && \
-    chown -R robot:robot /app
+    chown -R robot:robot /app && \
+    chmod +x bin/robot_challenge bin/docker-entrypoint.sh
 USER robot
 
 # Set entrypoint
-ENTRYPOINT ["./bin/robot_challenge_interactive.rb"]
+ENTRYPOINT ["./bin/docker-entrypoint.sh"]
 CMD []

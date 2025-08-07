@@ -75,10 +75,21 @@ docker build -t robot-challenge .
 docker run -it robot-challenge
 
 # Run basic command-line interface
-docker run -it robot-challenge bin/robot_challenge
+docker run -it robot-challenge --cli
+
+# For CI/CD pipelines (non-interactive)
+echo "PLACE 0,0,NORTH\nMOVE\nREPORT" | docker run -i robot-challenge --cli
 
 # With Redis
 docker run -it --network host robot-challenge
+
+# Individual CI pipeline tests
+echo -e "PLACE 0,0,NORTH\nMOVE\nREPORT" | docker run -i robot-challenge --cli | grep "0,1,NORTH"
+echo -e "PLACE 0,0,NORTH\nLEFT\nREPORT" | docker run -i robot-challenge --cli | grep "0,0,WEST"
+echo -e "PLACE 1,2,EAST\nMOVE\nMOVE\nLEFT\nMOVE\nREPORT" | docker run -i robot-challenge --cli | grep "3,3,NORTH"
+
+# Run comprehensive CI tests
+./ci_test.sh
 ```
 
 ## Commands
