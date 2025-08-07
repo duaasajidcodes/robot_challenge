@@ -379,14 +379,20 @@ RSpec.describe RobotChallenge::Application do
     end
 
     describe '#display_welcome_message' do
-      it 'calls output handler with welcome messages' do
+      it 'calls output handler with formatted welcome message' do
         app = described_class.new
         output = []
         app.set_output_handler(->(msg) { output << msg })
         app.send(:display_welcome_message)
-        expect(output).to include('Welcome to Robot Challenge Simulator')
-        expect(output).to include('Commands: PLACE X,Y,DIRECTION, MOVE, LEFT, RIGHT, REPORT, EXIT')
-        expect(output).to include('Type your commands (or EXIT to quit):')
+        
+        expect(output.first).to include('Robot Challenge Simulator')
+        expect(output.first).to include('PLACE X,Y,F - Place robot at position (X,Y) facing direction F')
+        expect(output.first).to include('MOVE - Move robot one step forward')
+        expect(output.first).to include('LEFT - Turn robot 90° counter-clockwise')
+        expect(output.first).to include('RIGHT - Turn robot 90° clockwise')
+        expect(output.first).to include('REPORT - Show current position and direction')
+        expect(output.first).to include('Table size: 5x5 table')
+        expect(output.first).to include('Valid directions: NORTH, EAST, SOUTH, WEST')
       end
     end
 

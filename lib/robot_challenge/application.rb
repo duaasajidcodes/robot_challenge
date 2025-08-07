@@ -44,6 +44,7 @@ module RobotChallenge
         options[:command_parser],
         options[:command_dispatcher]
       )
+      update_dispatcher_formatter(@output_formatter)
     end
 
     def input_source=(source)
@@ -141,9 +142,8 @@ module RobotChallenge
     end
 
     def display_welcome_message
-      output_handler.call(Constants::SUCCESS_MESSAGES[:welcome])
-      output_handler.call('Commands: PLACE X,Y,DIRECTION, MOVE, LEFT, RIGHT, REPORT, EXIT')
-      output_handler.call('Type your commands (or EXIT to quit):')
+      welcome_message = output_formatter.format_welcome_message(@table, Direction::VALID_DIRECTIONS)
+      output_handler.call(welcome_message) if welcome_message
     end
 
     def run_interactive_mode
