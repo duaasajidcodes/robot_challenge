@@ -11,7 +11,7 @@ module RobotChallenge
     def run
       loop do
         display_main_menu
-        choice = get_user_choice
+        choice = user_choice
         break if choice == '7'
 
         handle_menu_choice(choice)
@@ -21,50 +21,87 @@ module RobotChallenge
     private
 
     def display_main_menu
-      puts "\n#{'=' * 50}"
-      puts '🤖 ROBOT CHALLENGE SIMULATOR MENU'
-      puts '=' * 50
-      puts "1. #{RobotChallenge::Constants::MENU_OPTIONS[:basic_commands]}"
-      puts "2. #{RobotChallenge::Constants::MENU_OPTIONS[:output_formats]}"
-      puts "3. #{RobotChallenge::Constants::MENU_OPTIONS[:input_sources]}"
-      puts "4. #{RobotChallenge::Constants::MENU_OPTIONS[:table_sizes]}"
-      puts "5. #{RobotChallenge::Constants::MENU_OPTIONS[:cache_demo]}"
-      puts "6. #{RobotChallenge::Constants::MENU_OPTIONS[:examples]}"
-      puts "7. #{RobotChallenge::Constants::MENU_OPTIONS[:exit]}"
-      puts '=' * 50
-      print 'Enter your choice (1-7): '
+      MenuDisplay.new.show_main_menu
     end
 
-    def get_user_choice
+    def user_choice
       gets&.strip || '7'
     end
 
     def handle_menu_choice(choice)
+      MenuHandler.new(application).handle(choice)
+    end
+  end
+
+  class MenuDisplay
+    def show_main_menu
+      puts "\n#{'=' * 50}"
+      puts '🤖 ROBOT CHALLENGE SIMULATOR MENU'
+      puts '=' * 50
+      show_menu_options
+      puts '=' * 50
+      print 'Enter your choice (1-7): '
+    end
+
+    private
+
+    def show_menu_options
+      Constants::MENU_OPTIONS.each_with_index do |(_key, option), index|
+        puts "#{index + 1}. #{option}"
+      end
+    end
+  end
+
+  class MenuHandler
+    attr_reader :application
+
+    def initialize(application)
+      @application = application
+    end
+
+    def handle(choice)
       case choice
       when '1'
-        basic_commands_menu
+        BasicCommandsMenu.new(application).run
       when '2'
-        output_formats_menu
+        OutputFormatsMenu.new(application).run
       when '3'
-        input_sources_menu
+        InputSourcesMenu.new(application).run
       when '4'
-        table_sizes_menu
+        TableSizesMenu.new(application).run
       when '5'
-        cache_demo_menu
+        CacheDemoMenu.new(application).run
       when '6'
-        examples_menu
+        ExamplesMenu.new(application).run
       else
         puts 'Invalid choice. Please try again.'
       end
     end
+  end
 
-    def basic_commands_menu
+  class BasicCommandsMenu
+    attr_reader :application
+
+    def initialize(application)
+      @application = application
+    end
+
+    def run
+      display_header
+      run_command_loop
+    end
+
+    private
+
+    def display_header
       puts "\n#{'-' * 40}"
       puts 'BASIC ROBOT COMMANDS'
       puts '-' * 40
       puts "Enter commands one by one (or 'back' to return):"
       puts 'Available commands: PLACE X,Y,DIRECTION, MOVE, LEFT, RIGHT, REPORT, EXIT'
+    end
 
+    def run_command_loop
       loop do
         print '> '
         command = gets&.strip
@@ -73,29 +110,19 @@ module RobotChallenge
         application.process_command(command)
       end
     end
+  end
 
-    def output_formats_menu
-      puts "\n#{'-' * 40}"
-      puts 'OUTPUT FORMATS TEST'
-      puts '-' * 40
-      puts '1. Text format (default)'
-      puts '2. JSON format'
-      puts '3. XML format'
-      puts '4. CSV format'
-      puts '5. Quiet format (no output)'
-      puts '6. Back to main menu'
-      print 'Choose format (1-6): '
+  class OutputFormatsMenu
+    attr_reader :application
 
+    def initialize(application)
+      @application = application
+    end
+
+    def run
+      display_menu
       choice = gets&.strip
       return if choice == '6' || choice.nil?
-
-      format_map = {
-        '1' => 'text',
-        '2' => 'json',
-        '3' => 'xml',
-        '4' => 'csv',
-        '5' => 'quiet'
-      }
 
       format = format_map[choice]
       if format
@@ -105,25 +132,75 @@ module RobotChallenge
       end
     end
 
+    private
+
+    def display_menu
+      puts "\n#{'-' * 40}"
+      puts 'OUTPUT FORMATS TEST'
+      puts '-' * 40
+      show_format_options
+    end
+
+    def show_format_options
+      format_options.each_with_index do |option, index|
+        puts "#{index + 1}. #{option}"
+      end
+      puts '6. Back to main menu'
+      print 'Choose format (1-6): '
+    end
+
+    def format_options
+      ['Text format (default)', 'JSON format', 'XML format', 'CSV format', 'Quiet format (no output)']
+    end
+
+    def format_map
+      {
+        '1' => 'text',
+        '2' => 'json',
+        '3' => 'xml',
+        '4' => 'csv',
+        '5' => 'quiet'
+      }
+    end
+
     def test_output_format(format)
       puts "\nTesting #{format.upcase} output format..."
       puts '=' * 40
 
-      # Create a new application with the specified format
       test_app = Application.new(
         output_formatter: OutputFormatterFactory.create(format)
       )
 
-      # Run a test sequence
-      commands = ['PLACE 1,2,NORTH', 'MOVE', 'LEFT', 'REPORT']
-      commands.each do |command|
+      test_commands.each do |command|
         puts "Command: #{command}"
         test_app.process_command(command)
         puts '-' * 20
       end
     end
 
-    def input_sources_menu
+    def test_commands
+      ['PLACE 1,2,NORTH', 'MOVE', 'LEFT', 'REPORT']
+    end
+  end
+
+  class InputSourcesMenu
+    attr_reader :application
+
+    def initialize(application)
+      @application = application
+    end
+
+    def run
+      display_menu
+      choice = gets&.strip
+      return if choice == '4' || choice.nil?
+
+      handle_choice(choice)
+    end
+
+    private
+
+    def display_menu
       puts "\n#{'-' * 40}"
       puts 'INPUT SOURCES TEST'
       puts '-' * 40
@@ -132,10 +209,9 @@ module RobotChallenge
       puts '3. File input (test_data/example_1.txt)'
       puts '4. Back to main menu'
       print 'Choose input source (1-4): '
+    end
 
-      choice = gets&.strip
-      return if choice == '4' || choice.nil?
-
+    def handle_choice(choice)
       case choice
       when '1'
         test_string_input
@@ -182,21 +258,45 @@ module RobotChallenge
         puts 'File test_data/example_1.txt not found.'
       end
     end
+  end
 
-    def table_sizes_menu
-      puts "\n#{'-' * 40}"
-      puts 'TABLE SIZES TEST'
-      puts '-' * 40
-      puts '1. 5x5 (default)'
-      puts '2. 10x10'
-      puts '3. 3x3'
-      puts '4. 8x6'
-      puts '5. Back to main menu'
-      print 'Choose table size (1-5): '
+  class TableSizesMenu
+    attr_reader :application
 
+    def initialize(application)
+      @application = application
+    end
+
+    def run
+      display_menu
       choice = gets&.strip
       return if choice == '5' || choice.nil?
 
+      handle_choice(choice)
+    end
+
+    private
+
+    def display_menu
+      puts "\n#{'-' * 40}"
+      puts 'TABLE SIZES TEST'
+      puts '-' * 40
+      show_size_options
+    end
+
+    def show_size_options
+      size_options.each_with_index do |option, index|
+        puts "#{index + 1}. #{option}"
+      end
+      puts '5. Back to main menu'
+      print 'Choose table size (1-5): '
+    end
+
+    def size_options
+      ['5x5 (default)', '10x10', '3x3', '8x6']
+    end
+
+    def handle_choice(choice)
       size_map = {
         '1' => [5, 5],
         '2' => [10, 10],
@@ -216,14 +316,20 @@ module RobotChallenge
       puts "\nTesting #{width}x#{height} table..."
       puts '=' * 40
 
-      # Create application with custom table size
       test_app = Application.new(
         table_width: width,
         table_height: height
       )
 
-      # Test boundary conditions
-      commands = [
+      test_commands(width, height).each do |command|
+        puts "Command: #{command}"
+        test_app.process_command(command)
+        puts '-' * 20
+      end
+    end
+
+    def test_commands(width, height)
+      [
         'PLACE 0,0,NORTH',
         'MOVE',
         'REPORT',
@@ -231,55 +337,94 @@ module RobotChallenge
         'MOVE',
         'REPORT'
       ]
+    end
+  end
 
-      commands.each do |command|
-        puts "Command: #{command}"
-        test_app.process_command(command)
-        puts '-' * 20
-      end
+  class CacheDemoMenu
+    attr_reader :application
+
+    def initialize(application)
+      @application = application
     end
 
-    def cache_demo_menu
+    def run
+      display_menu
+      choice = gets&.strip
+      return if choice == 'back'
+
+      run_cache_demo
+    end
+
+    private
+
+    def display_menu
       puts "\n#{'-' * 40}"
       puts 'REDIS CACHE DEMO'
       puts '-' * 40
       puts 'This will run the cache demo if Redis is available.'
       puts "Press Enter to continue or 'back' to return..."
+    end
 
-      choice = gets&.strip
-      return if choice == 'back'
-
+    def run_cache_demo
       if File.exist?('bin/cache_demo.rb')
         system('bundle exec ruby bin/cache_demo.rb')
       else
         puts 'Cache demo script not found.'
       end
     end
+  end
 
-    def examples_menu
+  class ExamplesMenu
+    attr_reader :application
+
+    def initialize(application)
+      @application = application
+    end
+
+    def run
+      display_menu
+      choice = gets&.strip&.to_i
+      return if exit_choice?(choice)
+
+      handle_choice(choice)
+    end
+
+    private
+
+    def display_menu
       puts "\n#{'-' * 40}"
       puts 'EXAMPLE SCENARIOS'
       puts '-' * 40
+      show_scenarios
+      puts "#{Constants::EXAMPLE_SCENARIOS.length + 1}. Back to main menu"
+      print "Choose scenario (1-#{Constants::EXAMPLE_SCENARIOS.length + 1}): "
+    end
 
-      RobotChallenge::Constants::EXAMPLE_SCENARIOS.each_with_index do |(_key, scenario), index|
+    def show_scenarios
+      Constants::EXAMPLE_SCENARIOS.each_with_index do |(_key, scenario), index|
         puts "#{index + 1}. #{scenario[:name]}"
         puts "   #{scenario[:description]}"
       end
-      puts "#{Constants::EXAMPLE_SCENARIOS.length + 1}. Back to main menu"
+    end
 
-      print "Choose scenario (1-#{Constants::EXAMPLE_SCENARIOS.length + 1}): "
-      choice = gets&.strip&.to_i
-      return if choice == RobotChallenge::Constants::EXAMPLE_SCENARIOS.length + 1 || choice.nil?
+    def exit_choice?(choice)
+      choice == Constants::EXAMPLE_SCENARIOS.length + 1 || choice.nil?
+    end
 
-      if choice.between?(1, RobotChallenge::Constants::EXAMPLE_SCENARIOS.length)
+    def handle_choice(choice)
+      if valid_choice?(choice)
         run_example_scenario(choice - 1)
       else
         puts 'Invalid choice.'
       end
     end
 
+    def valid_choice?(choice)
+      choice.between?(1, Constants::EXAMPLE_SCENARIOS.length)
+    end
+
     def run_example_scenario(index)
-      scenarios = RobotChallenge::Constants::EXAMPLE_SCENARIOS.values
+      scenarios = Constants::EXAMPLE_SCENARIOS.values
       scenario = scenarios[index]
 
       puts "\nRunning: #{scenario[:name]}"
