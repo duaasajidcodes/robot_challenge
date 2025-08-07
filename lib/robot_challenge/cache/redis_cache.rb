@@ -48,7 +48,7 @@ module RobotChallenge
           table_keys: keys_by_type[:table],
           cache_ttl: @cache_ttl,
           namespace: @namespace,
-          timestamp: Time.now.iso8601
+          timestamp: Time.now.strftime('%Y-%m-%dT%H:%M:%SZ')
         }
       end
 
@@ -89,7 +89,7 @@ module RobotChallenge
           cache_stats: cache_stats_data,
           status: 'healthy',
           redis_available: true,
-          timestamp: Time.now.iso8601
+          timestamp: Time.now.strftime('%Y-%m-%dT%H:%M:%SZ')
         }
       end
 
@@ -101,7 +101,7 @@ module RobotChallenge
           status: 'unhealthy',
           redis_available: false,
           error: error.message,
-          timestamp: Time.now.iso8601
+          timestamp: Time.now.strftime('%Y-%m-%dT%H:%M:%SZ')
         }
       end
 

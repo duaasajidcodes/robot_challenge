@@ -8,15 +8,35 @@ A Ruby implementation of a toy robot simulation with advanced features including
 - **Redis Caching**: High-performance caching system with monitoring
 - **Multiple Output Formats**: Text, JSON, XML, CSV, and quiet modes
 - **Flexible Input Sources**: Stdin, files, strings, and arrays
+- **Interactive Menu**: Comprehensive testing interface for all features
 - **Extensible Architecture**: Easy to add new commands and formats
 - **Comprehensive Testing**: 300+ tests with 90%+ coverage
 - **Docker Support**: Containerized deployment ready
+- **Error Handling**: Graceful error handling with user-friendly messages
+- **Performance Monitoring**: Cache statistics and health checks
 
 ## Requirements
 
 - Ruby 3.0+
 - Bundler
 - Redis (optional, for caching)
+
+## Redis Setup
+
+To test the caching features, you'll need Redis running:
+
+```bash
+# Option 1: Using Docker (recommended)
+docker run -d -p 6380:6379 --name robot-redis redis:alpine
+
+# Option 2: Using Homebrew (macOS)
+brew install redis
+brew services start redis
+
+# Option 3: Using system package manager
+# Ubuntu/Debian: sudo apt-get install redis-server
+# CentOS/RHEL: sudo yum install redis
+```
 
 ## Installation
 
@@ -28,9 +48,14 @@ bundle install
 
 ## Quick Start
 
+### Basic Usage
+
 ```bash
-# Basic usage
+# Command line interface
 echo "PLACE 0,0,NORTH\nMOVE\nREPORT" | bundle exec ruby bin/robot_challenge
+
+# Interactive menu (recommended for new users)
+bundle exec ruby bin/robot_challenge_interactive.rb
 
 # JSON output
 echo "PLACE 0,0,NORTH\nMOVE\nREPORT" | bundle exec ruby bin/robot_challenge -o json
@@ -39,7 +64,21 @@ echo "PLACE 0,0,NORTH\nMOVE\nREPORT" | bundle exec ruby bin/robot_challenge -o j
 bundle exec ruby bin/robot_challenge < test_data/example_1.txt
 
 # Redis caching demo
-bundle exec ruby bin/cache_demo.rb
+REDIS_URL=redis://localhost:6380 bundle exec ruby bin/cache_demo.rb
+```
+
+### Docker Usage
+
+```bash
+# Build and run (interactive menu by default)
+docker build -t robot-challenge .
+docker run -it robot-challenge
+
+# Run basic command-line interface
+docker run -it robot-challenge bin/robot_challenge
+
+# With Redis
+docker run -it --network host robot-challenge
 ```
 
 ## Commands
@@ -51,6 +90,17 @@ bundle exec ruby bin/cache_demo.rb
 - `REPORT` - Report current position and direction
 - `EXIT` - Exit the application (aliases: `QUIT`, `BYE`)
 
+## Interactive Mode
+
+The interactive mode provides a comprehensive menu to test all features:
+
+1. **Basic Robot Commands** - Enter commands manually
+2. **Test Output Formats** - Try Text, JSON, XML, CSV, and Quiet formats
+3. **Test Input Sources** - Test String, Array, and File inputs
+4. **Test Different Table Sizes** - Try 5x5, 10x10, 3x3, 8x6 tables
+5. **Redis Cache Demo** - Test caching functionality
+6. **Example Scenarios** - Run predefined test scenarios
+
 ## Configuration
 
 ### Environment Variables
@@ -60,6 +110,7 @@ ROBOT_TABLE_WIDTH=10      # Table width (default: 5)
 ROBOT_TABLE_HEIGHT=8      # Table height (default: 5)
 ROBOT_OUTPUT_FORMAT=json  # Output format (text, json, xml, csv, quiet)
 ROBOT_CACHE_DEBUG=1       # Enable cache debugging
+REDIS_URL=redis://localhost:6380  # Redis connection URL
 ```
 
 ### Command Line Options
@@ -67,6 +118,22 @@ ROBOT_CACHE_DEBUG=1       # Enable cache debugging
 ```bash
 bundle exec ruby bin/robot_challenge --help
 ```
+
+## Output Formats
+
+- **Text** (default): Human-readable format
+- **JSON**: Structured data format
+- **XML**: XML format for integration
+- **CSV**: Comma-separated values
+- **Quiet**: Minimal output for scripting
+
+## Input Sources
+
+- **Stdin**: Standard input (default)
+- **File**: Read from file
+- **String**: Process string input
+- **Array**: Process array of commands
+- **Network**: Read from network source
 
 ## Architecture
 
@@ -77,6 +144,8 @@ bundle exec ruby bin/robot_challenge --help
 - **Robot**: Core robot entity with state management
 - **Table**: Boundary validation and position management
 - **Commands**: Extensible command system using Command pattern
+- **Cache**: Redis-based caching system
+- **MenuSystem**: Interactive testing interface
 
 ### Design Patterns
 
@@ -85,6 +154,7 @@ bundle exec ruby bin/robot_challenge --help
 - **Registry Pattern**: Command registration and management
 - **Dependency Injection**: Loose coupling and testability
 - **Strategy Pattern**: Pluggable input sources and output formats
+- **Decorator Pattern**: Caching functionality
 
 ### SOLID Principles
 
@@ -169,17 +239,6 @@ class NetworkInputSource < RobotChallenge::InputSource
     response.body.each_line(&block)
   end
 end
-```
-
-## Docker
-
-```bash
-# Build and run
-docker build -t robot-challenge .
-docker run -it robot-challenge
-
-# With Redis
-docker run -it --network host robot-challenge
 ```
 
 ## Examples

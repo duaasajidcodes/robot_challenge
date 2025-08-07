@@ -28,6 +28,7 @@ require_relative 'robot_challenge/application'
 require_relative 'robot_challenge/dependency_container'
 require_relative 'robot_challenge/cli_argument_parser'
 require_relative 'robot_challenge/cache'
+require_relative 'robot_challenge/menu_system'
 
 module RobotChallenge
   class Error < StandardError; end

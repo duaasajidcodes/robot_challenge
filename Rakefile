@@ -28,6 +28,11 @@ task :run do
   ruby '-Ilib bin/robot_challenge'
 end
 
+desc 'Run the robot challenge in interactive mode'
+task :interactive do
+  ruby '-Ilib bin/robot_challenge_interactive.rb'
+end
+
 desc 'Run with example test data'
 task :run_example do
   sh 'ruby -Ilib bin/robot_challenge < test_data/example_1.txt'

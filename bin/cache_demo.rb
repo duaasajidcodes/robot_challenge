@@ -36,22 +36,17 @@ cacheable_robot.move
 
 puts "Robot position: #{cacheable_robot.report}"
 
-puts "\n🎯 Demo 2: Command Result Caching"
-puts '----------------------------------'
+puts "\n🎯 Demo 2: Cache Operations"
+puts '----------------------------'
 
-commands = [
-  'PLACE 2,2,EAST',
-  'MOVE',
-  'LEFT',
-  'REPORT'
-]
+puts 'Testing cache operations...'
+cache.set_command_result('test_key', 'test_value')
+result = cache.get_command_result('test_key')
+puts "  Cached value: #{result}"
 
-puts 'Executing commands with caching...'
-commands.each do |command|
-  puts "  Executing: #{command}"
-  result = cached_processor.process_command_string(command)
-  puts "  Result: #{result}"
-end
+cache.invalidate_command_cache_by_hash('test_key')
+result = cache.get_command_result('test_key')
+puts "  After invalidation: #{result}"
 
 puts "\n🎯 Demo 3: Cache Statistics"
 puts '----------------------------'
@@ -94,14 +89,13 @@ puts "Time without cache: #{time_without_cache.round(4)} seconds"
 puts "Time with cache: #{time_with_cache.round(4)} seconds"
 puts "Performance improvement: #{improvement}%"
 
-puts "\n🎯 Demo 7: Command Statistics"
+puts "\n🎯 Demo 7: Cache Health Check"
 puts '------------------------------'
 
-command_stats = cached_processor.command_stats
-puts "Total commands: #{command_stats[:total_commands]}"
-puts "Cache hits: #{command_stats[:cache_hits]}"
-puts "Cache misses: #{command_stats[:cache_misses]}"
-puts "Average execution time: #{command_stats[:average_execution_time]} seconds"
+health = cache.health_check
+puts "Cache available: #{health[:available]}"
+puts "Connection info: #{health[:connection_info]}"
+puts "Cache stats: #{health[:cache_stats]}"
 
 puts "\n🎉 Demo completed successfully!"
 puts "\n💡 Tips:"

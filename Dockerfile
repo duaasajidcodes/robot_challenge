@@ -31,5 +31,5 @@ RUN useradd -m -s /bin/bash robot && \
 USER robot
 
 # Set entrypoint
-ENTRYPOINT ["./bin/robot_challenge"]
+ENTRYPOINT ["./bin/robot_challenge_interactive.rb"]
 CMD []

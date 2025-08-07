@@ -7,7 +7,7 @@ module RobotChallenge
     # Command to exit the robot application
     class ExitCommand < Command
       def execute(_robot)
-        output_result('Goodbye! Thanks for using Robot Challenge!')
+        output_result(Constants::SUCCESS_MESSAGES[:exit_message])
       end
 
       def valid_for_robot?(_robot)
