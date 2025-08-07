@@ -5,7 +5,6 @@ require 'securerandom'
 
 module RobotChallenge
   module Cache
-    # Cacheable robot wrapper that adds Redis caching to robot operations
     class CacheableRobot
       include RobotOperations
 
@@ -62,7 +61,6 @@ module RobotChallenge
         @cache.health_check
       end
 
-      # Delegate other methods to the underlying robot
       def method_missing(method_name, ...)
         if @robot.respond_to?(method_name)
           @robot.send(method_name, ...)
@@ -75,7 +73,6 @@ module RobotChallenge
         @robot.respond_to?(method_name, include_private) || super
       end
 
-      # Cache management methods
       def load_from_cache
         cached_state = @cache.get_robot_state(@robot_id)
         return false unless cached_state
@@ -126,8 +123,7 @@ module RobotChallenge
       end
 
       def log_cache_error(operation, error)
-        # In production, this would use a proper logger
-        puts "[CACHEABLE_ROBOT_ERROR] #{operation}: #{error.message}"
+        # Error logging handled by main logger
       end
     end
   end

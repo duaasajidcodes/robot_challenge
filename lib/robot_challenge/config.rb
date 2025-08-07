@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Configuration management for the Robot Challenge application
   class Config
     attr_reader :table_width, :table_height, :test_mode, :debug_mode,
                 :output_format, :quiet_mode, :max_commands, :timeout_seconds,
@@ -12,7 +11,6 @@ module RobotChallenge
       load_from_environment
     end
 
-    # Load configuration from environment variables
     def load_from_environment
       load_table_config
       load_mode_config
@@ -21,7 +19,6 @@ module RobotChallenge
       load_path_config
     end
 
-    # Load configuration from a .env file
     def load_environment_file(file_path)
       return unless File.exist?(file_path)
 
@@ -30,27 +27,22 @@ module RobotChallenge
       end
     end
 
-    # Get table dimensions as a hash
     def table_dimensions
       { width: @table_width, height: @table_height }
     end
 
-    # Check if running in test mode
     def test_mode?
       @test_mode
     end
 
-    # Check if running in debug mode
     def debug_mode?
       @debug_mode
     end
 
-    # Check if running in quiet mode
     def quiet_mode?
       @quiet_mode
     end
 
-    # Get configuration as a hash
     def to_h
       {
         table_width: @table_width,
@@ -66,7 +58,6 @@ module RobotChallenge
       }
     end
 
-    # Create a configuration for a specific environment
     def self.for_environment(env = nil)
       env ||= ENV.fetch('ROBOT_ENV', 'development')
       env_file = ".env.#{env}"

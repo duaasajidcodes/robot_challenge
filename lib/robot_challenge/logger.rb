@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Simple logger implementation
   class SimpleLogger
     include Logger
 
@@ -41,7 +40,6 @@ module RobotChallenge
     end
   end
 
-  # Null logger for testing (implements null object pattern)
   class NullLogger
     include Logger
 
@@ -51,7 +49,6 @@ module RobotChallenge
     def error(_message); end
   end
 
-  # Logger factory for creating appropriate loggers
   class LoggerFactory
     def self.create(type = nil, **)
       case type&.to_s&.downcase

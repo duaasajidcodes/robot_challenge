@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Responsible for parsing command line arguments
-  # Separates CLI argument parsing from application logic (SRP)
   class CliArgumentParser
     attr_reader :table_width, :table_height, :input_file, :output_format
 

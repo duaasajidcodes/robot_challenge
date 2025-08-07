@@ -319,11 +319,11 @@ RSpec.describe RobotChallenge::Cache::CacheableRobot do
     end
 
     describe '#log_cache_error' do
-      it 'logs cache errors' do
+      it 'handles cache errors silently' do
         error = StandardError.new('Test error')
         expect do
           cacheable_robot.send(:log_cache_error, 'test_operation', error)
-        end.to output(/CACHEABLE_ROBOT_ERROR/).to_stdout
+        end.not_to output.to_stdout
       end
     end
   end

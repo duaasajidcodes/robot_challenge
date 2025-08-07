@@ -66,7 +66,6 @@ module RobotChallenge
       end
     end
 
-    # Health checker for Redis cache
     class CacheHealthChecker
       def initialize(redis, stats_builder)
         @redis = redis
@@ -124,7 +123,6 @@ module RobotChallenge
       end
     end
 
-    # Mock Redis implementation
     class MockRedis
       def initialize
         @data = {}
@@ -163,7 +161,6 @@ module RobotChallenge
       end
     end
 
-    # Redis-based caching system for robot challenge
     class RedisCache
       attr_reader :redis, :cache_ttl, :namespace
 
@@ -175,26 +172,22 @@ module RobotChallenge
         @health_checker = CacheHealthChecker.new(@redis, @stats_builder)
       end
 
-      # Cache robot state
       def cache_robot_state(robot_id, state)
         key = build_key("robot:#{robot_id}:state")
         store_data(key, state, "Cached robot state for #{robot_id}")
       end
 
-      # Get cached robot state
       def robot_state(robot_id)
         key = build_key("robot:#{robot_id}:state")
         retrieve_data(key)
       end
       alias get_robot_state robot_state
 
-      # Cache command result
       def cache_command_result(command_key, result)
         key = build_key("command:#{command_key}")
         store_data(key, result, 'Cached command result')
       end
 
-      # Get cached command result
       def command_result(command_key)
         key = build_key("command:#{command_key}")
         retrieve_data(key)
@@ -203,42 +196,35 @@ module RobotChallenge
       alias get_command_result command_result
       alias set_command_result cache_command_result
 
-      # Cache table state
       def cache_table_state(table_id, state)
         key = build_key("table:#{table_id}:state")
         store_data(key, state, "Cached table state for #{table_id}")
       end
 
-      # Get cached table state
       def table_state(table_id)
         key = build_key("table:#{table_id}:state")
         retrieve_data(key)
       end
       alias get_table_state table_state
 
-      # Invalidate robot cache
       def invalidate_robot_cache(robot_id)
         invalidate_cache_by_pattern("robot:#{robot_id}:*", 'robot')
       end
 
-      # Invalidate table cache
       def invalidate_table_cache(table_id)
         invalidate_cache_by_pattern("table:#{table_id}:*", 'table')
       end
 
-      # Invalidate command cache
       def invalidate_command_cache(command_pattern)
         invalidate_cache_by_pattern("command:#{command_pattern}", 'command')
       end
 
-      # Invalidate command cache by hash
       def invalidate_command_cache_by_hash(command_hash)
         key = build_key("command:#{command_hash}")
         @redis.del(key)
         log_cache_operation('invalidate_command_cache_by_hash', key, 'Deleted command cache')
       end
 
-      # Clear all cache
       def clear_all_cache
         pattern = build_key('*')
         keys = @redis.keys(pattern)
@@ -248,17 +234,14 @@ module RobotChallenge
         log_cache_operation('clear_all_cache', pattern, "Deleted #{keys.length} keys")
       end
 
-      # Get cache statistics
       def cache_stats
         @stats_builder.build
       end
 
-      # Health check
       def health_check
         @health_checker.check
       end
 
-      # Check if Redis is available
       def available?
         @redis.ping
         true
@@ -303,10 +286,10 @@ module RobotChallenge
         "#{@namespace}:#{key_suffix}"
       end
 
-      def log_cache_operation(operation, key, message)
-        return unless ENV['ROBOT_CACHE_DEBUG']
+      def log_cache_operation(_operation, _key, _message)
+        nil unless ENV['ROBOT_CACHE_DEBUG']
 
-        puts "[REDIS_CACHE] #{operation}: #{key} - #{message}"
+        # Debug logging disabled in production
       end
     end
   end

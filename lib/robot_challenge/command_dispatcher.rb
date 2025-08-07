@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Responsible for dispatching and executing commands
-  # Separates command execution from command parsing (SRP)
   class CommandDispatcher
     include CommandDispatcherInterface
 

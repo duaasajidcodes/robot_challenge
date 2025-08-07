@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Helper module for common output formatter functionality
   module OutputFormatterHelpers
     def robot_data(robot)
       {
@@ -26,7 +25,6 @@ module RobotChallenge
     end
   end
 
-  # Abstract base class for output formatters
   class OutputFormatter
     include OutputFormatterHelpers
 
@@ -62,7 +60,6 @@ module RobotChallenge
     end
   end
 
-  # Default text formatter (current behavior)
   class TextOutputFormatter < OutputFormatter
     def format_report(robot)
       robot.report
@@ -103,7 +100,6 @@ module RobotChallenge
     end
   end
 
-  # JSON formatter for structured output
   class JsonOutputFormatter < OutputFormatter
     def initialize
       require 'json'
@@ -154,7 +150,6 @@ module RobotChallenge
     end
   end
 
-  # XML formatter for structured output
   class XmlOutputFormatter < OutputFormatter
     def format_report(robot)
       <<~XML
@@ -226,7 +221,6 @@ module RobotChallenge
     end
   end
 
-  # CSV formatter for tabular output
   class CsvOutputFormatter < OutputFormatter
     def format_report(robot)
       "x,y,direction,formatted\n#{robot.position.x},#{robot.position.y},#{robot.direction.name},#{robot.report}"
@@ -263,7 +257,6 @@ module RobotChallenge
     end
   end
 
-  # Quiet formatter (no output)
   class QuietOutputFormatter < OutputFormatter
     def format_report(_robot)
       nil
@@ -286,7 +279,6 @@ module RobotChallenge
     end
   end
 
-  # Output formatter factory
   class OutputFormatterFactory
     def self.create(format = nil)
       case format&.to_s&.downcase

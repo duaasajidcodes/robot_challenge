@@ -2,7 +2,6 @@
 
 module RobotChallenge
   module Commands
-    # Base class for command parsers
     class CommandParser
       def parse(_command_string)
         raise NotImplementedError, 'Subclasses must implement parse method'
@@ -23,7 +22,6 @@ module RobotChallenge
       end
     end
 
-    # Parser for simple commands that don't require parameters
     class SimpleCommandParser < CommandParser
       def initialize(command_name)
         @command_name = command_name.to_s.upcase
@@ -37,7 +35,6 @@ module RobotChallenge
       end
     end
 
-    # Parser for PLACE command with flexible parameter formats
     class PlaceCommandParser < CommandParser
       def command_name
         'PLACE'
@@ -80,7 +77,6 @@ module RobotChallenge
       end
     end
 
-    # Parser for flexible command formats
     class FlexibleCommandParser < CommandParser
       def initialize(command_name)
         @command_name = command_name.to_s.upcase

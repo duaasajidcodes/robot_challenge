@@ -2,7 +2,6 @@
 
 module RobotChallenge
   module Commands
-    # Registry for managing available commands
     class CommandRegistry
       attr_reader :commands
 

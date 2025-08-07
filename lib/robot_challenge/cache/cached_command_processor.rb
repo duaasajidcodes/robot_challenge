@@ -5,7 +5,6 @@ require 'digest'
 
 module RobotChallenge
   module Cache
-    # Decorator that adds caching to CommandProcessor
     class CachedCommandProcessor
       attr_reader :processor, :cache
 
@@ -85,9 +84,13 @@ module RobotChallenge
         cache.invalidate_robot_cache(robot_id)
       end
 
-      def log_cache_hit(command_string); end
+      def log_cache_hit(command_string)
+        # Cache hit logging disabled
+      end
 
-      def log_cache_miss(command_string); end
+      def log_cache_miss(command_string)
+        # Cache miss logging disabled
+      end
 
       def method_missing(method_name, *, &)
         if processor.respond_to?(method_name)

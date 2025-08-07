@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Abstract base class for input sources
   class InputSource
     def each_line(&)
       raise NotImplementedError, "#{self.class} must implement #each_line"
@@ -20,7 +19,6 @@ module RobotChallenge
     end
   end
 
-  # Input source for standard input
   class StdinInputSource < InputSource
     def initialize(io = $stdin)
       @io = io
@@ -39,7 +37,6 @@ module RobotChallenge
     end
   end
 
-  # Input source for file input
   class FileInputSource < InputSource
     def initialize(file_path)
       @file_path = file_path
@@ -71,7 +68,6 @@ module RobotChallenge
     end
   end
 
-  # Input source for string input (useful for testing)
   class StringInputSource < InputSource
     def initialize(string)
       @string = string
@@ -92,7 +88,6 @@ module RobotChallenge
     end
   end
 
-  # Input source for array input (useful for testing)
   class ArrayInputSource < InputSource
     def initialize(array)
       @array = array
@@ -112,7 +107,6 @@ module RobotChallenge
     end
   end
 
-  # Input source for network/socket input (extensible for future)
   class NetworkInputSource < InputSource
     def initialize(socket)
       @socket = socket
@@ -131,7 +125,6 @@ module RobotChallenge
     end
   end
 
-  # Input source factory for creating input sources
   class InputSourceFactory
     def self.create(source)
       case source

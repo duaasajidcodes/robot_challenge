@@ -3,8 +3,6 @@
 require_relative 'commands/exit_command'
 
 module RobotChallenge
-  # Coordinates command parsing and dispatching
-  # Follows Single Responsibility Principle by delegating to specialized services
   class CommandProcessor
     attr_accessor :output_handler
     attr_reader :robot, :parser, :dispatcher

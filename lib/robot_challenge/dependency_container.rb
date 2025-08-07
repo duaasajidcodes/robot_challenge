@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Dependency injection container for managing object dependencies
   class DependencyContainer
     def initialize
       @dependencies = {}
@@ -9,17 +8,14 @@ module RobotChallenge
       register_defaults
     end
 
-    # Register a singleton instance
     def register(name, instance)
       @dependencies[name] = instance
     end
 
-    # Register a factory for creating instances
     def register_factory(name, &block)
       @factories[name] = block
     end
 
-    # Resolve a dependency by name
     def resolve(name)
       return @dependencies[name] if @dependencies.key?(name)
       return @factories[name].call if @factories.key?(name)
@@ -27,12 +23,10 @@ module RobotChallenge
       raise ArgumentError, "Dependency '#{name}' not registered"
     end
 
-    # Check if dependency is registered
     def registered?(name)
       @dependencies.key?(name) || @factories.key?(name)
     end
 
-    # Create a new instance with resolved dependencies
     def create(klass, **overrides)
       constructor = klass.instance_method(:initialize)
       params = constructor.parameters
@@ -105,7 +99,6 @@ module RobotChallenge
     end
   end
 
-  # Global dependency container instance
   @container = nil
 
   def self.container
@@ -116,12 +109,10 @@ module RobotChallenge
     @container = container
   end
 
-  # Helper method to resolve dependencies
   def self.resolve(name)
     container.resolve(name)
   end
 
-  # Helper method to create instances with dependencies
   def self.create(klass, **overrides)
     container.create(klass, **overrides)
   end

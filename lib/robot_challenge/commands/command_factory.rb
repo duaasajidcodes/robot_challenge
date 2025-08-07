@@ -4,7 +4,6 @@ require_relative 'command_parser'
 
 module RobotChallenge
   module Commands
-    # Factory for creating commands from strings
     class CommandFactory
       attr_reader :registry, :parsers
 

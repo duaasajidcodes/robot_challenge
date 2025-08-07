@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module RobotChallenge
-  # Application constants to reduce repetition (DRY principle)
   module Constants
     # Default table dimensions
     DEFAULT_TABLE_WIDTH = 5
