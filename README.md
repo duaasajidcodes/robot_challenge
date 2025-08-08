@@ -144,7 +144,6 @@ bundle exec ruby bin/robot_challenge --help
 - **File**: Read from file
 - **String**: Process string input
 - **Array**: Process array of commands
-- **Network**: Read from network source
 
 ## Architecture
 
