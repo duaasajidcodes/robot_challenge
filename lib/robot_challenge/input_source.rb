@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'stringio'
+
 module RobotChallenge
   class InputSource
     def each_line(&)

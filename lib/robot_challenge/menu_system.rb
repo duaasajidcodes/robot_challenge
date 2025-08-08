@@ -255,7 +255,12 @@ module RobotChallenge
         test_app = Application.new(input_source: source)
         test_app.run
       else
-        puts 'File test_data/example_1.txt not found.'
+        puts 'File example_1.txt not found. Using built-in test data...'
+        
+        test_commands = ['PLACE 0,0,NORTH', 'MOVE', 'REPORT']
+        source = InputSourceFactory.from_array(test_commands)
+        test_app = Application.new(input_source: source)
+        test_app.run
       end
     end
   end
